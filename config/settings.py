@@ -41,6 +41,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'corsheaders',
+    'apps.community.posts',
+    'apps.community.comments',
+    'apps.community.likes',
+    'apps.community.reports',
 ]
 
 MIDDLEWARE = [
