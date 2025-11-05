@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==================================================
-# 🐾 WithPet-BE 개발환경 완전 자동 세팅 스크립트
+# 🐾 WithPet-BE 개발환경 완전 자동 세팅 스크립트 (서버 자동 실행 포함)
 # ==================================================
 # 실행 위치: 프로젝트 루트 (WithPet-BE/)
 # 실행 명령: bash setup_withpet_env.sh
@@ -32,3 +32,22 @@ pip install --upgrade pip
 
 # --- 5️⃣ .editorconfig 설정 ---
 cat <<'EOF' > .editorconfig
+root = true
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+EOF
+echo "✅ .editorconfig 생성 완료"
+
+# --- 6️⃣ .gitattributes 설정 ---
+cat <<'EOF' > .gitattributes
+* text=auto eol=lf
+EOF
+echo "✅ .gitattributes 생성 완료"
+
+# --- 7️⃣ requiremen
+
