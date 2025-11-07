@@ -9,14 +9,13 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import sys, os
+
 from pathlib import Path
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-sys.path.append(os.path.join(BASE_DIR, 'apps'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -27,7 +26,7 @@ SECRET_KEY = 'django-insecure-a4yn1d0737k24l^=i_ebv2a)wg4if&9!9b^jjuko5*fzmc!c*9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['oz-withpet.kro.kr']
 
 
 # Application definition
@@ -42,6 +41,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'corsheaders',
+    "apps.community.posts.apps.PostsConfig",
+    "apps.community.comments.apps.CommentsConfig",
+    "apps.community.likes.apps.LikesConfig",
+    "apps.community.reports.apps.ReportsConfig",
 ]
 
 MIDDLEWARE = [
