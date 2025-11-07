@@ -35,6 +35,11 @@ class Post(models.Model):
 
     class Meta:
         db_table = "post"
+        constraints = [
+            models.CheckConstraint(check=Q(view_count__gte=0),     name="ck_post_view_count_nonneg"),
+            models.CheckConstraint(check=Q(like_count__gte=0),     name="ck_post_like_count_nonneg"),
+            models.CheckConstraint(check=Q(comment_count__gte=0),  name="ck_post_comment_count_nonneg"),
+        ]
         indexes = [
             models.Index(fields=["-created_at"]),
             models.Index(fields=["-view_count"]),
