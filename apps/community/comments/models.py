@@ -16,7 +16,7 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "comment"
+        db_table = "community_comment"
         indexes = [
             models.Index(fields=["post", "-created_at"]),
         ]
