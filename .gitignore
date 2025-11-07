@@ -357,9 +357,6 @@ $RECYCLE.BIN/
 # .idea 수동 추가
 .idea
 
-# pyproject.toml 수동 추가
- pyproject.toml
-
 # env 파일 수동 추가
 .env.local
 .env.prod
