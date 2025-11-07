@@ -1,0 +1,16 @@
+name: Deploy Test
+
+on:
+  push:
+    branches: [develop]   # develop 브랜치에 push될 때 실행
+
+jobs:
+  test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run sample command
+        run: echo "✅ GitHub Actions is working!"
