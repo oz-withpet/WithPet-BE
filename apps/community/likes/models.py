@@ -13,7 +13,7 @@ class Like(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
-        db_table = "like"
+        db_table = "community_like"
         constraints = [
             models.UniqueConstraint(fields=["user", "content_type", "object_id"], name="uniq_user_target_like")
         ]
