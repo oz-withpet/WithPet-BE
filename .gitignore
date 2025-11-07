@@ -358,10 +358,10 @@ $RECYCLE.BIN/
 .idea
 
 # pyproject.toml 수동 추가
-# pyproject.toml
+ pyproject.toml
 
 # env 파일 수동 추가
-#.env.local
-#.env.prod
+.env.local
+.env.prod
 
 # pycharm,venv,dotenv,django,windows,macos
