@@ -1,4 +1,3 @@
-# apps/community/posts/services/listing.py
 from typing import Dict, Any
 from django.db.models import Q, Exists, OuterRef
 from django.core.paginator import Paginator, EmptyPage
@@ -9,16 +8,22 @@ from rest_framework.exceptions import ValidationError
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemCommunityOut
-from apps.community.likes.models import Like  # Generic FK 기반 좋아요 모델을 가정
+from apps.community.likes.models import Like  # Generic FK 기반 좋아요 모델 가정
 
+# ✅ 공통 상수/헬퍼로 통일
+from apps.community.common import (
+    ALLOWED_SORT,
+    ALLOWED_SEARCH_IN,
+    CATEGORY_KOR_ALLOWED,
+    normalize_category_input,
+)
 
-# 허용 세트
-ALLOWED_CATEGORIES = {"전체", "자유게시판", "정보공유", "질문게시판"}
-ALLOWED_SORT = {"latest", "views", "likes"}
-ALLOWED_SEARCH_IN = {"title", "content", "title_content"}
+# 카테고리 허용값: 실제 3종 + 가상 "전체"
+ALLOWED_CATEGORIES = {"전체", *CATEGORY_KOR_ALLOWED}
+
 
 def _parse_params(qp) -> Dict[str, Any]:
-    # ✅ 보완점: view가 주어졌고 community가 아니면 400
+    # view가 주어졌고 community가 아니면 400
     v = qp.get("view")
     if v is not None and v != "community":
         raise ValidationError(detail={"code": "BAD_VIEW", "message": "view 파라미터는 community만 허용됩니다."})
@@ -72,8 +77,8 @@ def community_list(request):
     )
 
     # 카테고리: "전체"는 필터 미적용
-    cat = params["category"]
-    if cat and cat != "전체":
+    cat = normalize_category_input(params["category"])  # "전체" → None
+    if cat:
         qs = qs.filter(category__name=cat)
 
     # 검색
