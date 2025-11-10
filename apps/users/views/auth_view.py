@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions
-from users.serializers.user_serializers import UserSerializer
-from users.models import User
+from apps.users.serializers.user_serializers import UserSerializer
+from apps.users.models import User
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()

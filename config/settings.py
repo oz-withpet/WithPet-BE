@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'apps.users',
     'drf_spectacular',
     'corsheaders',
     "apps.community.posts.apps.PostsConfig",
@@ -66,6 +68,7 @@ REST_FRAMEWORK = {
     # 인증 방식 조정 필요
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
