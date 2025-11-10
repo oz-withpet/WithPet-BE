@@ -8,9 +8,12 @@ from .models import Post
 class PostCreateIn(serializers.Serializer):
     title = serializers.CharField(min_length=1, max_length=100)
     content = serializers.CharField(min_length=1, max_length=20000)
-    # "전체"는 쿼리 전용(입력 금지) → 실제 3종만 허용
-    category = serializers.ChoiceField(choices=CATEGORY_KOR_ALLOWED)
-    # 스펙: multipart/form-data 지원(이미지 1장 선택)
+    category = serializers.ChoiceField(
+        choices=CATEGORY_KOR_ALLOWED,
+        error_messages={
+            "invalid_choice": "카테고리는 자유게시판/정보공유/질문게시판만 허용됩니다.",
+        },
+    )
     image = serializers.ImageField(required=False, allow_null=True, write_only=True)
 
     @staticmethod
