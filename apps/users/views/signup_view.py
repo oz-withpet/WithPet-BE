@@ -1,9 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from users.serializers.signup_serializer import SignupSerializer
-from users.utils.email_service import send_verification_email
-from users.models import CustomUser
+from apps.users.serializers.signup_serializer import SignupSerializer
+from apps.users.utils.email_service import send_verification_email
+from apps.users.models import CustomUser
 from django.core.cache import cache
 
 
@@ -38,7 +38,7 @@ class VerifyNicknameView(APIView):
         return Response({'detail': '사용 가능한 닉네임입니다.'}, status=status.HTTP_200_OK)
 
 
-class SignupView(APIView):
+class SignupAPIView(APIView):
     """
     3️⃣ 인증코드 확인 후 회원가입 완료
     """
