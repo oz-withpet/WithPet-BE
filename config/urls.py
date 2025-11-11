@@ -25,5 +25,6 @@ urlpatterns = [
     path('swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),# 내장 Swagger UI
     path("", include("apps.community.posts.urls")),
     path("", include("apps.community.comments.urls")),
+    path("", include("apps.community.likes.urls")),
 
 ]
