@@ -1,6 +1,4 @@
-# apps/community/posts/services/detail.py
 from typing import Optional
-from django.db import models
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostDetailOut, CommentsBlockOut
 from apps.community.common import id_from_public, preview_comments
+
 
 def _parse_params(qp) -> tuple[Optional[str], int, Optional[str]]:
     include = qp.get("include")
@@ -23,14 +22,19 @@ def _parse_params(qp) -> tuple[Optional[str], int, Optional[str]]:
     after = qp.get("comments_after")
     return include, limit, after
 
+
 def get_post_detail(request, post_id: str):
+    # base64 → int
     try:
         internal_id = id_from_public(post_id)
     except Exception:
         raise ValidationError({"post_id": "유효하지 않은 base64 ID입니다."})
 
-    qs: models.QuerySet = Post.objects.select_related("category", "author").filter(is_deleted=False)
-    post = get_object_or_404(qs, id=internal_id)
+    # ✅ 모델 클래스 사용 → 타입 경고 제거
+    post = get_object_or_404(Post, id=internal_id, is_deleted=False)
+
+    # select_related가 필요하면, 아래 한 줄로 ‘다시 조회’(미세한 2nd 쿼리)
+    post = Post.objects.select_related("category", "author").get(id=post.id)
 
     include, limit, after = _parse_params(request.query_params)
 
@@ -47,7 +51,6 @@ def get_post_detail(request, post_id: str):
                 raise ValidationError({"comments_after": "유효하지 않은 base64 ID입니다."})
 
         preview = preview_comments(post_id=post.id, limit=limit, after_id=after_int)
-        # ✅ instance 모드로 직렬화 (items가 모델 인스턴스이므로 read_only 필드 충돌 없음)
         block = CommentsBlockOut(instance=preview, context={"request": request})
         data["comments"] = block.data
 

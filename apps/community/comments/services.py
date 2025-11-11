@@ -42,11 +42,12 @@ def create(request, post_id: str):
     except (ValueError, binascii.Error):
         raise ValidationError({"post_id": "유효하지 않은 base64 ID입니다."})
 
-    post = get_object_or_404(Post.objects.filter(is_deleted=False), id=internal_pid)
+    # ✅ QuerySet 대신 "모델 클래스"를 첫 인자로 전달 → 타입 경고 제거
+    get_object_or_404(Post, id=internal_pid, is_deleted=False)
 
     with transaction.atomic():
         c = Comment.objects.create(
-            post=post,
+            post_id=internal_pid,       # post 객체를 다시 안 가져와도 됨
             author=request.user,
             content=ser.validated_data["content"],
         )
@@ -72,7 +73,8 @@ def update(request, comment_id: str):
     except (ValueError, binascii.Error):
         raise ValidationError({"comment_id": "유효하지 않은 base64 ID입니다."})
 
-    comment = get_object_or_404(Comment.objects.select_related("author"), id=cid, is_deleted=False)
+    # ✅ 모델 클래스 사용 → 타입 경고 제거
+    comment = get_object_or_404(Comment, id=cid, is_deleted=False)
 
     # 소유자 검사(관리자 허용)
     user = request.user
@@ -103,6 +105,7 @@ def delete(request, comment_id: str):
     except (ValueError, binascii.Error):
         raise ValidationError({"comment_id": "유효하지 않은 base64 ID입니다."})
 
+    # ✅ 모델 클래스 사용 → 타입 경고 제거
     comment = get_object_or_404(Comment, id=cid)
 
     # 소유자 검사(관리자 허용)

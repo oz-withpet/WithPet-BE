@@ -24,5 +24,6 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),                      # OpenAPI JSON/YAML
     path('swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),# 내장 Swagger UI
     path("", include("apps.community.posts.urls")),
+    path("", include("apps.community.comments.urls")),
 
 ]
