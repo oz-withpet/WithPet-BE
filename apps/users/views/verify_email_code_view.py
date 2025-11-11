@@ -5,7 +5,6 @@ from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-
 class VerifyEmailCodeAPIView(APIView):
     """
     이메일 인증코드 검증 API
