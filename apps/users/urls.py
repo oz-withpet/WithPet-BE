@@ -15,4 +15,5 @@ urlpatterns = [
     path('send-email-code/', SendEmailCodeAPIView.as_view(), name='send_email_code'),
     path('verify-email-code/', VerifyEmailCodeAPIView.as_view(), name='verify_email_code'),
     path("token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
+    path("logout/", LogoutAPIView.as_view(), name="logout"),
 ]
