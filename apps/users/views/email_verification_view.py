@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-import uuid
 
 class EmailVerification(models.Model):
     email = models.EmailField(unique=True)
