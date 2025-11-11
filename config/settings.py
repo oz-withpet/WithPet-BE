@@ -28,6 +28,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['oz-withpet.kro.kr']
 
+AUTH_USER_MODEL = "users.CustomUser"
+
 
 # Application definition
 
