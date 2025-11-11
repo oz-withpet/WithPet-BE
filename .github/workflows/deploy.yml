@@ -26,5 +26,6 @@ jobs:
             source /home/ubuntu/WithPet-BE/.venv/bin/activate
             pip install -r requirements.txt
             sudo systemctl restart gunicorn
+            sudo systemctl reload nginx   # <- nginx reload 추가
           EOF
 

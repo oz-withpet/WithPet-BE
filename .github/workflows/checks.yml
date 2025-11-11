@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - develop
-  pull_request:
-    branches:
-      - develop
+  pull_request: {}   # develop -> 전체로 변경
 
 jobs:
   build-and-test:
