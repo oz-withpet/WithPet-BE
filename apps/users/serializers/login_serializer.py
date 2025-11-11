@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
-from apps.users.models import CustomUser
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
