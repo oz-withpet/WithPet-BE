@@ -5,6 +5,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
 from apps.community.posts.services.listing_router import list_posts
 from apps.community.posts.services.create import create_post
+from apps.community.posts.services.detail import get_post_detail
 
 
 class PostsView(APIView):
@@ -23,3 +24,9 @@ class PostsView(APIView):
 
     def post(self, request, *args, **kwargs):
         return create_post(request)
+
+class PostDetailView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, post_id: str, *args, **kwargs):
+        return get_post_detail(request, post_id)
