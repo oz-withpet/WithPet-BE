@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-a4yn1d0737k24l^=i_ebv2a)wg4if&9!9b^jjuko5*fzmc!c*9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['oz-withpet.kro.kr']
+ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = "users.CustomUser"
 
@@ -153,6 +153,7 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'oz-withpet API',
     'DESCRIPTION': 'oz-withpet API',
     'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
     'SERVERS': [
         {'url': 'https://oz-withpet.kro.kr', 'description': 'for test'},
     ],

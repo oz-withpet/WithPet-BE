@@ -1,10 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, generics
 from apps.users.serializers.signup_serializer import SignupSerializer
 from apps.users.utils.email_service import send_verification_email
 from apps.users.models import CustomUser
 from django.core.cache import cache
+from drf_spectacular.utils import extend_schema
 
 
 class SendVerificationCodeView(APIView):
@@ -12,6 +13,12 @@ class SendVerificationCodeView(APIView):
     1️⃣ 이메일로 인증코드를 발송하는 API
     """
     permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        request={"application/json": {"email": "string"}},
+        responses={200: {"detail": "인증코드가 이메일로 발송되었습니다."}},
+        description="이메일을 입력하면 인증코드를 전송합니다."
+    )
 
     def post(self, request):
         email = request.data.get('email')
@@ -28,6 +35,12 @@ class VerifyNicknameView(APIView):
     """
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        request={"application/json": {"nickname": "string"}},
+        responses={200: {"detail": "사용 가능한 닉네임입니다."}},
+        description="닉네임 중복 여부를 확인합니다."
+    )
+
     def post(self, request):
         nickname = request.data.get('nickname')
         if not nickname:
@@ -43,6 +56,12 @@ class SignupAPIView(APIView):
     3️⃣ 인증코드 확인 후 회원가입 완료
     """
     permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        request=SignupSerializer,
+        responses={201: SignupSerializer},
+        description="이메일과 인증코드를 검증하고 회원가입을 완료합니다."
+    )
 
     def post(self, request):
         email = request.data.get('email')
