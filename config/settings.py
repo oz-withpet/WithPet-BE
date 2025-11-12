@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 from corsheaders.defaults import default_headers
 
@@ -26,7 +27,9 @@ SECRET_KEY = 'django-insecure-a4yn1d0737k24l^=i_ebv2a)wg4if&9!9b^jjuko5*fzmc!c*9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['oz-withpet.kro.kr']
+ALLOWED_HOSTS = ['*']
+
+AUTH_USER_MODEL = "users.CustomUser"
 
 
 # Application definition
@@ -39,8 +42,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'apps.users',
     'drf_spectacular',
     'corsheaders',
+    "apps.community.posts.apps.PostsConfig",
+    "apps.community.comments.apps.CommentsConfig",
+    "apps.community.likes.apps.LikesConfig",
+    "apps.community.reports.apps.ReportsConfig",
 ]
 
 MIDDLEWARE = [
@@ -62,6 +71,7 @@ REST_FRAMEWORK = {
     # 인증 방식 조정 필요
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -143,6 +153,7 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'oz-withpet API',
     'DESCRIPTION': 'oz-withpet API',
     'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
     'SERVERS': [
         {'url': 'https://oz-withpet.kro.kr', 'description': 'for test'},
     ],
@@ -166,7 +177,6 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_HEADERS = list(default_headers) + ['authorization']
 
-
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -178,4 +188,3 @@ CACHES = {
         },
         "TIMEOUT": 60 * 15,  # 기본 TTL 15분
     }
-}

@@ -28,4 +28,3 @@ jobs:
             sudo systemctl restart gunicorn
             sudo systemctl reload nginx   # <- nginx reload 추가
           EOF
-

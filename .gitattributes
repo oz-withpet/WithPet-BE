@@ -1,0 +1,27 @@
+# --- Line endings ---
+# 모든 텍스트 파일은 LF (\n)로 통일
+* text=auto eol=lf
+
+# --- File type-specific overrides ---
+# 이미지, 바이너리 등은 변환하지 않음
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.exe binary
+
+# --- Python/Django specific ---
+*.py text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+*.env text eol=lf
+*.ini text eol=lf
