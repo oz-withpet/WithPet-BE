@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from apps.community.common import validate_report, reason_code_to_label
+
 
 class ReportReason(models.TextChoices):
     HATE      = "HATE",      "혐오 및 차별"
@@ -14,17 +17,38 @@ class ReportReason(models.TextChoices):
     YOUTH     = "YOUTH",     "청소년 유해 정보"
     OTHER     = "OTHER",     "기타"
 
+
 class ReportStatus(models.TextChoices):
     PENDING   = "PENDING",   "접수"
     RESOLVED  = "RESOLVED",  "처리완료"
     REJECTED  = "REJECTED",  "기각"
 
-# ✅ 정적분석 친화: (value, label) 튜플의 튜플로 고정
-REPORT_REASON_CHOICES: tuple[tuple[str, str], ...] = tuple((e.value, e.label) for e in ReportReason)
-REPORT_STATUS_CHOICES: tuple[tuple[str, str], ...] = tuple((e.value, e.label) for e in ReportStatus)
+
+# ⚠️ 정적분석 경고 회피용 하드코딩 choices (동적 속성/반복 사용 안 함)
+REPORT_REASON_CHOICES: tuple[tuple[str, str], ...] = (
+    ("HATE", "혐오 및 차별"),
+    ("INSULT", "욕설 및 비방"),
+    ("ILLEGAL", "불법 정보"),
+    ("SPAM", "스팸 및 홍보성 게시물"),
+    ("PRIVACY", "개인정보 침해"),
+    ("COPYRIGHT", "저작권/지적재산권 침해"),
+    ("YOUTH", "청소년 유해 정보"),
+    ("OTHER", "기타"),
+)
+
+REPORT_STATUS_CHOICES: tuple[tuple[str, str], ...] = (
+    ("PENDING", "접수"),
+    ("RESOLVED", "처리완료"),
+    ("REJECTED", "기각"),
+)
+
 
 class Report(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reports")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reports",
+    )
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, db_index=True)
     object_id = models.PositiveBigIntegerField(db_index=True)
     target = GenericForeignKey("content_type", "object_id")
@@ -37,7 +61,10 @@ class Report(models.Model):
     class Meta:
         db_table = "report"
         constraints = [
-            models.UniqueConstraint(fields=["user", "content_type", "object_id"], name="uniq_user_target_report")
+            models.UniqueConstraint(
+                fields=["user", "content_type", "object_id"],
+                name="uniq_user_target_report",
+            )
         ]
         indexes = [
             models.Index(fields=["content_type", "object_id"]),
@@ -46,7 +73,8 @@ class Report(models.Model):
         ]
 
     def clean(self):
-        validate_report(self.reason, self.detail)  # '기타'면 detail 5자 이상
+        # '기타(OTHER)'면 detail 5자 이상 등 도메인 검증
+        validate_report(self.reason, self.detail)
 
     @property
     def reason_label(self) -> str:
