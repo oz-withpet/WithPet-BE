@@ -5,6 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+import hashlib
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemCommunityOut
@@ -131,4 +132,23 @@ def community_list(request):
         "page_size": params["page_size"],
         "total": paginator.count if hasattr(paginator, "count") else 0,
     }
-    return Response(data, status=status.HTTP_200_OK)
+
+    # ✅ ETag/Cache-Control
+    # 페이지 구성 요소 + 마지막 항목 갱신시각을 해시로 묶어 약한 ETag 생성
+    last_updated = None
+    if page_obj:
+        # page_obj가 Paginator Page일 수도 있으니 list 변환 안전
+        items = list(page_obj)
+        last_updated = getattr(items[-1], "updated_at", None)
+
+    etag_src = f"community:{params['page']}:{params['page_size']}:{params['category']}:{params['sort']}:{params['q']}:{last_updated and last_updated.isoformat()}"
+    etag = f'W/"{hashlib.md5(etag_src.encode()).hexdigest()}"'
+
+    # 조건부 요청 처리: If-None-Match가 동일하면 304
+    if request.META.get("HTTP_IF_NONE_MATCH") == etag:
+        return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+    resp = Response(data, status=status.HTTP_200_OK)
+    resp["ETag"] = etag
+    resp["Cache-Control"] = "public, max-age=30"
+    return resp
