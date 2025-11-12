@@ -11,6 +11,16 @@ class SignupSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['email', 'nickname', 'password', 'password2', 'pet_type', 'gender']
 
+    def validate_nickname(self, value):
+        if contains_profanity(value):
+            raise serializers.ValidationError("닉네임에 비속어 또는 부적절한 단어가 포함되어 있습니다.")
+        return value
+
+    def validate_email(self, value):
+        if contains_profanity(value):
+            raise serializers.ValidationError("이메일에 부적절한 단어가 포함되어 있습니다.")
+        return value
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({'password': '비밀번호가 일치하지 않습니다.'})
