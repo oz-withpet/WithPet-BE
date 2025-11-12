@@ -9,12 +9,15 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
+import sys
 from pathlib import Path
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+sys.path.insert(0, str(BASE_DIR / 'apps'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -25,8 +28,8 @@ SECRET_KEY = 'django-insecure-a4yn1d0737k24l^=i_ebv2a)wg4if&9!9b^jjuko5*fzmc!c*9
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = ['oz-withpet.kro.kr']
+#로컬서버에서 접근허용 테스트용
+ALLOWED_HOSTS = ['oz-withpet.kro.kr', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -41,6 +44,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'corsheaders',
+    'django.contrib.postgres',
+    'maps',
 ]
 
 MIDDLEWARE = [
@@ -53,6 +58,22 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+# 서버에 CORS 헤더를 추가하도록 허용
+# 클라이언트(브라우저)가 서버에 요청을 보낼 때 쿠키(Cookies), HTTP 인증 헤더(Authorization Header),
+# 클라이언트 SSL 인증서 등의 자격 증명 정보를 함께 전송할 수 있도록 허용
+#SessionAuthentication,JWT 이용해 로그인 상태를 유지하거나 사용자 인증이 필요한 API를 사용
+# CORS_ALLOW_CREDENTIALS = True
+# CORS_ALLOW_METHODS = [
+#     'DELETE',
+#     'GET',
+#     'OPTIONS',
+#     'PATCH',
+#     'POST',
+#     'PUT',
+# ]
+# CSRF_TRUSTED_ORIGINS = [
+#     'https://oz-withpet.kro.kr',
+# ]
 
 ROOT_URLCONF = 'config.urls'
 
@@ -91,11 +112,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'withpet_db',
+        'USER': 'postgres',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        },
     }
 }
-
+# postgresql 환경변수 강제설정
+os.environ['PGCLIENTENCODING'] = 'UTF8'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

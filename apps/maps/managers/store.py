@@ -15,12 +15,14 @@ class StoreManager(models.Manager):
     def filter_category(self, category_name=None):
         queryset = self.get_queryset()
         if category_name:
-            #queryset = queryset.filter(category__??????=category_name) name__exact, name__icontains
             queryset = queryset.filter(category__name=category_name)
         return queryset
 
     def filter_keyword(self, keyword=None):
         queryset = self.get_queryset()
         if keyword:
-            queryset = queryset.filter(keyword=keyword)
+            queryset = queryset.filter(
+                Q(name__icontains=keyword) |
+                Q(full_address__icontains=keyword)
+            )
         return queryset
