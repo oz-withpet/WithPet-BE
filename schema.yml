@@ -1,0 +1,443 @@
+openapi: 3.0.3
+info:
+  title: WithPet API
+  version: 1.0.0
+  description: 회원가입 / 로그인 / 토큰 관리 API
+paths:
+  /check/email/:
+    post:
+      operationId: check_email_create
+      description: |-
+        이메일 중복 확인 API
+        - 이미 가입된 이메일인지 검사
+      tags:
+      - check
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailCheckRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailCheckRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailCheckRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailCheck'
+          description: ''
+  /comments/{comment_id}:
+    put:
+      operationId: comments_update
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - comments
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+    delete:
+      operationId: comments_destroy
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - comments
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /login/:
+    post:
+      operationId: login_create
+      description: 사용자가 이메일과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.
+      summary: 로그인 API
+      tags:
+      - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: 로그인 성공 — access, refresh 토큰 반환
+        '400':
+          description: 잘못된 요청 또는 인증 실패
+  /logout/:
+    post:
+      operationId: logout_create
+      description: |-
+        사용자의 리프레시 토큰을 블랙리스트에 등록하여 로그아웃을 수행합니다.
+        요청 시 refresh 토큰을 반드시 전달해야 합니다.
+      summary: 로그아웃 (JWT 블랙리스트)
+      tags:
+      - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+            examples:
+              정상요청예시:
+                value:
+                  refresh: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+                summary: 정상 요청 예시
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: 로그아웃 완료
+        '400':
+          description: 잘못된 요청 또는 유효하지 않은 토큰
+  /nickname-check/:
+    get:
+      operationId: nickname_check_retrieve
+      tags:
+      - nickname-check
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /posts:
+    get:
+      operationId: posts_retrieve
+      description: |-
+        GET  /posts  -> list_posts (view=main/community)
+        POST /posts  -> create_post (JSON & multipart, 이미지 옵션)
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: posts_create
+      description: |-
+        GET  /posts  -> list_posts (view=main/community)
+        POST /posts  -> create_post (JSON & multipart, 이미지 옵션)
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /posts/{post_id}:
+    get:
+      operationId: posts_retrieve_2
+      parameters:
+      - in: path
+        name: post_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /posts/{post_id}/comments:
+    post:
+      operationId: posts_comments_create
+      parameters:
+      - in: path
+        name: post_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /send-email-code/:
+    post:
+      operationId: send_email_code_create
+      description: 이메일 인증코드 발송 API
+      tags:
+      - send-email-code
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /signup/:
+    post:
+      operationId: signup_create
+      description: 이메일과 인증코드를 검증하고 회원가입을 완료합니다.
+      tags:
+      - signup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Signup'
+          description: ''
+  /token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /verify-email-code/:
+    post:
+      operationId: verify_email_code_create
+      description: |-
+        이메일 인증코드 검증 API
+        ✅ 인증 성공 시 캐시에서 코드 삭제
+      summary: API 설명을 추가하세요
+      tags:
+      - verify-email-code
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          description: 성공
+components:
+  schemas:
+    EmailCheck:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    EmailCheckRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - email
+    GenderEnum:
+      enum:
+      - male
+      - female
+      type: string
+      description: |-
+        * `male` - 남자
+        * `female` - 여자
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    LogoutRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: 리프레시 토큰
+      required:
+      - refresh
+    PetTypeEnum:
+      enum:
+      - dog
+      - cat
+      type: string
+      description: |-
+        * `dog` - 강아지
+        * `cat` - 고양이
+    Signup:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        nickname:
+          type: string
+          maxLength: 30
+        pet_type:
+          $ref: '#/components/schemas/PetTypeEnum'
+        gender:
+          $ref: '#/components/schemas/GenderEnum'
+      required:
+      - email
+      - gender
+      - nickname
+      - pet_type
+    SignupRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 30
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password2:
+          type: string
+          writeOnly: true
+          minLength: 1
+        pet_type:
+          $ref: '#/components/schemas/PetTypeEnum'
+        gender:
+          $ref: '#/components/schemas/GenderEnum'
+      required:
+      - email
+      - gender
+      - nickname
+      - password
+      - password2
+      - pet_type
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

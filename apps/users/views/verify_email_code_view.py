@@ -1,9 +1,12 @@
+# ⚙️ 자동 변환됨: drf_yasg → drf_spectacular
+# ✅ 필요 시 Serializer를 명시해 request/response를 세부적으로 조정하세요.
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.core.cache import cache
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
+from rest_framework import serializers
 
 class VerifyEmailCodeAPIView(APIView):
     """
@@ -13,22 +16,7 @@ class VerifyEmailCodeAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
     # 🔹 Swagger 요청 파라미터 정의
-    @swagger_auto_schema(
-        operation_summary="이메일 인증코드 검증",
-        operation_description="사용자가 입력한 이메일과 인증코드를 검증합니다.",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=["email", "verification_code"],
-            properties={
-                "email": openapi.Schema(type=openapi.TYPE_STRING, description="사용자 이메일 주소"),
-                "verification_code": openapi.Schema(type=openapi.TYPE_STRING, description="이메일로 발송된 인증코드"),
-            },
-        ),
-        responses={
-            200: openapi.Response(description="이메일 인증이 완료되었습니다."),
-            400: openapi.Response(description="잘못된 요청 또는 인증 실패"),
-        },
-    )
+    @extend_schema(summary='API 설명을 추가하세요', responses={200: OpenApiResponse(description='성공')})
     def post(self, request):
         email = request.data.get("email")
         code = request.data.get("verification_code")

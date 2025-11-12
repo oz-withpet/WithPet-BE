@@ -21,12 +21,9 @@ from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("apps.community.posts.urls")),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),                      # OpenAPI JSON/YAML
-    path('swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),# 내장 Swagger UI
+    path('', include('apps.users.urls')),
     path("", include("apps.community.posts.urls")),
     path("", include("apps.community.comments.urls")),
-
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
