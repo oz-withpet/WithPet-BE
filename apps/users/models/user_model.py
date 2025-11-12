@@ -22,8 +22,16 @@ class CustomUser(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     nickname = models.CharField(max_length=20, unique=True)
-    gender = models.CharField(max_length=10, choices=[("male", "남자"), ("female", "여자")])
-    pet_type = models.CharField(max_length=10, choices=[("dog", "강아지"), ("cat", "고양이")])
+
+    gender = models.CharField(
+        max_length=10,
+        choices=[(tag.value, tag.name.capitalize()) for tag in GenderEnum],
+    )
+
+    pet_type = models.CharField(
+        max_length=10,
+        choices=[(tag.value, tag.name.capitalize()) for tag in PetTypeEnum],
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["nickname", "gender", "pet_type"]
