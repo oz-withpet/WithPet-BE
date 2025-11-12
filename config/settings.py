@@ -160,6 +160,22 @@ SPECTACULAR_SETTINGS = {
 # swagger editor를 로컬에서 테스트 할 경우 도메인 안전장치
 CORS_ALLOWED_ORIGINS = [
     "https://oz-withpet.kro.kr",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + ['authorization']
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # TLS 연결, host:port 사용
+        "LOCATION": "rediss://pet-service-cache-kvmoj6.serverless.apn2.cache.amazonaws.com:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SSL_CERT_REQS": None,  # TLS 인증서 검증 무시 (AWS Serverless 허용)
+        },
+        "TIMEOUT": 60 * 15,  # 기본 TTL 15분
+    }
+}
