@@ -18,3 +18,12 @@ urlpatterns = [
     path('', include('apps.maps.urls')),
     path('mypage/', include('apps.mypage.urls'))
 ]
+
+
+def trigger_error(request):
+    division_by_zero = 1 / 0
+
+urlpatterns += [
+    path('sentry-debug/', trigger_error),
+    # ...
+]

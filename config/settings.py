@@ -201,3 +201,12 @@ CACHES = {
         "TIMEOUT": 60 * 15,  # 기본 TTL 15분
     }
 }
+
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://0b58502a077d835d3312da5ac24a53d2@o4510357893152768.ingest.us.sentry.io/4510357893939200",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
