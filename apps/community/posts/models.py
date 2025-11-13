@@ -3,6 +3,10 @@ from django.db.models import Q
 from django.conf import settings
 from apps.community.common import CATEGORY_KOR_ALLOWED, id_to_public
 
+class PostQuerySet(models.QuerySet):
+    def alive(self):
+        return self.filter(is_deleted=False)
+
 class PostCategory(models.Model):
     name = models.CharField(max_length=20, unique=True)
     class Meta:
@@ -32,6 +36,7 @@ class Post(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
+    objects = PostQuerySet.as_manager()
 
     class Meta:
         db_table = "post"
