@@ -12,3 +12,6 @@ def send_verification_email(email):
         [email],
         fail_silently=False,
     )
+def verify_email_code(email, code):
+    cached_code = cache.get(email)
+    return cached_code == code
