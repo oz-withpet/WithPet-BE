@@ -1,4 +1,3 @@
-# apps/community/posts/services/listing_main.py
 from __future__ import annotations
 
 from typing import Dict, Any, Tuple, Optional, Sequence, List
@@ -16,13 +15,11 @@ from rest_framework.response import Response
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemMainOut
 
-# main 뷰에서 금지되는 파라미터
 FORBIDDEN_ON_MAIN = {"page", "page_size", "category", "sort", "q", "search_in"}
 
 
 # ---------- 커서/시간 유틸 ----------
 def _safe_ms_from_dt(dt: datetime) -> int:
-    """datetime → epoch milliseconds (예외 시 0)."""
     try:
         return int(dt.timestamp() * 1000)
     except (AttributeError, OSError, OverflowError, ValueError, TypeError):
@@ -36,7 +33,6 @@ def _encode_cursor(dt: datetime, pk: int) -> str:
 
 
 def _decode_cursor(token: str) -> Tuple[int, int]:
-    """urlsafe base64 → (epoch_ms, id)"""
     try:
         pad = "=" * ((4 - len(token) % 4) % 4)
         raw = base64.urlsafe_b64decode((token + pad).encode("ascii")).decode("utf-8")
@@ -47,14 +43,12 @@ def _decode_cursor(token: str) -> Tuple[int, int]:
 
 
 def _key_for_etag(obj: Optional[Post]) -> str:
-    """ETag 키(created_at_ms:id). 없으면 빈 문자열."""
     if not obj:
         return ""
     return f"{_safe_ms_from_dt(obj.created_at)}:{obj.id}"
 
 
 def _slice_with_has_next(items: Sequence[Post], limit: int) -> Tuple[List[Post], bool]:
-    """limit+1 규칙으로 page/has_next 계산."""
     has_next = len(items) > limit
     return list(items[:limit]), has_next
 
@@ -66,7 +60,6 @@ def _make_etag_main(limit: int, after_token: Optional[str], page: Sequence[Post]
     return f'W/"{hashlib.md5(etag_src.encode()).hexdigest()}"'
 
 
-# ---------- 파라미터 파싱 ----------
 def _parse_params(qp) -> Dict[str, Any]:
     v = qp.get("view")
     if v is not None and v != "main":
@@ -87,11 +80,10 @@ def _parse_params(qp) -> Dict[str, Any]:
     return {"limit": limit, "after": after}
 
 
-# ---------- 메인 리스트 ----------
+# 메인 리스트
 def main_list(request):
     params = _parse_params(request.query_params)
 
-    # 안정 정렬: 최신순 우선(-created_at, -id)
     qs: models.QuerySet = (
         Post.objects
         .select_related("category")
@@ -99,14 +91,12 @@ def main_list(request):
         .order_by("-created_at", "-id")
     )
 
-    # after 커서 적용: (created_at DESC, id DESC)의 다음 배치
     after_token = params["after"]
     if after_token:
         cursor_ms, cursor_last_id = _decode_cursor(after_token)
         cursor_dt = datetime.fromtimestamp(cursor_ms / 1000.0, tz=dt_timezone.utc)
         qs = qs.filter(Q(created_at__lt=cursor_dt) | Q(created_at=cursor_dt, id__lt=cursor_last_id))
 
-    # limit+1로 has_next 판별
     limit = params["limit"]
     rows = list(qs[: limit + 1])
     page, has_next = _slice_with_has_next(rows, limit)
@@ -119,7 +109,6 @@ def main_list(request):
     ser = PostListItemMainOut(page, many=True, context={"request": request})
     data = {"posts": ser.data, "has_next": has_next, "next_after": next_after}
 
-    # ===== ETag / Cache-Control =====
     etag_val = _make_etag_main(limit, after_token, page)
 
     # 조건부 요청 처리

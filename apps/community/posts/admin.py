@@ -1,4 +1,3 @@
-# apps/community/posts/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 from django.contrib.auth import get_user_model
@@ -16,7 +15,6 @@ class PostCategoryAdmin(admin.ModelAdmin):
     ordering = ("id",)
 
 
-# NEW: 일괄 소프트 삭제/복구 액션
 @admin.action(description="선택한 게시글 소프트 삭제")
 def soft_delete_posts(modeladmin, request, queryset):
     now = timezone.now()
@@ -37,26 +35,19 @@ class PostAdmin(admin.ModelAdmin):
         "is_deleted", "created_at", "updated_at", "image_thumb",
     )
     list_filter = ("category", "is_deleted", "created_at")
-    search_fields: tuple[str, ...] = ()  # 실제 필드는 get_search_fields에서 동적 구성
+    search_fields: tuple[str, ...] = ()
 
-    # ✅ users.Admin 의존 제거: author는 raw_id_fields로, category만 autocomplete 유지
     raw_id_fields = ("author",)
     autocomplete_fields = ("category",)
 
-    # CHANGED: 관리 화면에서 확인하기 편하도록 읽기 전용 필드 유지 + 정렬/날짜/성능 설정
     readonly_fields = ("view_count", "like_count", "comment_count", "created_at", "updated_at")
     ordering = ("-created_at", "-id")
     date_hierarchy = "created_at"
     list_select_related = ("category", "author")
 
-    # NEW: 소프트 삭제/복구 액션 연결
     actions = (soft_delete_posts, restore_posts)
 
     def get_search_fields(self, request):
-        """
-        사용자 모델에 존재하는 필드만 안전하게 추가.
-        우선순위: username/email/nickname/name → 항상 author__id 보조.
-        """
         base = ["title", "content"]
         user_model = get_user_model()
         user_field_names = {

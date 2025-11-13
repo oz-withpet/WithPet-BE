@@ -1,4 +1,3 @@
-# apps/community/posts/views.py
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
@@ -11,10 +10,6 @@ from apps.community.posts.services.delete import delete_post
 
 
 class PostsView(APIView):
-    """
-    GET  /posts  -> list_posts (view=main/community)
-    POST /posts  -> create_post (JSON & multipart, 이미지 옵션)
-    """
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_permissions(self):
@@ -28,11 +23,6 @@ class PostsView(APIView):
 
 
 class PostDetailView(APIView):
-    """
-    GET    /posts/{id}      -> get_post_detail
-    PATCH  /posts/{id}      -> patch_post (작성자만)
-    DELETE /posts/{id}      -> delete_post (작성자만)
-    """
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_permissions(self):
