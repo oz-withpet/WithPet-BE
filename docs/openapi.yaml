@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
   title: WithPet Integrated API
   version: 1.0.0
@@ -35,7 +35,7 @@ paths:
   # -----------------------------
   # 커뮤니티 (사용자 원본 그대로, ID만 base64 문자열 Id64로 통합)
   # -----------------------------
-  /withpet/posts:
+  /posts:
     get:
       tags: [Posts]
       summary: Posts list (main or community)
@@ -117,7 +117,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  /withpet/posts/{post_id}:
+  /posts/{post_id}:
     get:
       tags: [Posts]
       summary: Get single post (optional comment preview)
@@ -215,7 +215,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  /withpet/posts/{post_id}/comments:
+  /posts/{post_id}/comments:
     post:
       tags: [Comments]
       summary: Create comment (auth)
@@ -261,7 +261,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  /withpet/comments/{comment_id}:
+  /comments/{comment_id}:
     put:
       tags: [Comments]
       summary: Update comment (author only)
@@ -333,7 +333,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  /withpet/posts/{post_id}/like:
+  /posts/{post_id}/like:
     get:
       tags: [Likes]
       summary: Get like status
@@ -410,7 +410,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  /withpet/posts/{post_id}/report:
+  /posts/{post_id}/report:
     post:
       tags: [Reports]
       summary: Create report (auth)
@@ -465,9 +465,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  # -----------------------------
   # Auth (기존 병합본 그대로)
-  # -----------------------------
   /auth/signup:
     post:
       tags: [Auth]
@@ -967,9 +965,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  # -----------------------------
-  # 지도/매장 (기존 병합본 그대로)
-  # -----------------------------
+
   /map/locations:
     get:
       tags: [Locations]
@@ -988,6 +984,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: neighborhood
+          in: query
+          description: 읍/면/동 (district 필수)
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: 지역 정보 조회 성공
@@ -996,15 +998,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
                   data:
                     type: array
                     items:
                       $ref: '#/components/schemas/Location'
                 required:
-                  - success
                   - data
         '400':
           $ref: '#/components/responses/Error400'
@@ -1035,20 +1033,16 @@ paths:
                   - success
                   - data
               example:
-                success: true
                 data:
                   - id: "1"
                     name: 동물병원
                     code: hospital
-                    icon: "🏥"
                   - id: "2"
                     name: 애견카페
                     code: cafe
-                    icon: "☕"
                   - id: "3"
                     name: 애견미용
                     code: grooming
-                    icon: "✂️"
         '500':
           $ref: '#/components/responses/Error500'
 
@@ -1057,8 +1051,7 @@ paths:
       tags: [Stores]
       summary: 매장 검색 (무한 스크롤)
       description: |-
-        지역, 카테고리, 키워드로 매장을 검색합니다.
-        **무한 스크롤 방식**으로 데이터를 반환하며, `cursor` 파라미터로 페이지네이션합니다.
+
       parameters:
         - name: province
           in: query
@@ -1151,7 +1144,6 @@ paths:
                   - data
                   - metadata
               example:
-                success: true
                 data:
                   - id: 1001
                     name: 행복동물병원
@@ -1164,16 +1156,10 @@ paths:
                       neighborhood: 역삼동
                       detail: 123-45
                       full_address: 서울특별시 강남구 역삼동 123-45
-                      postal_code: "06234"
+                      latitude: 37.55878709
+                      longtitude: 126.82717098
                     phone: 02-1234-5678
-                    rating: 4.5
-                    review_count: 128
-                    tags:
-                      - 24시간
-                      - 주차가능
-                      - 예약필수
                     distance: 0.8
-                    thumbnail_url: https://cdn.withpet.com/stores/1001/thumb.jpg
                   - id: 1002
                     name: 펫케어 동물의료센터
                     category:
@@ -1185,15 +1171,10 @@ paths:
                       neighborhood: 삼성동
                       detail: 567-89
                       full_address: 서울특별시 강남구 삼성동 567-89
-                      postal_code: "06123"
+                      latitude: 37.55878709
+                      longtitude: 126.82717098
                     phone: 02-9876-5432
-                    rating: 4.8
-                    review_count: 256
-                    tags:
-                      - 전문의
-                      - 응급실
                     distance: 1.2
-                    thumbnail_url: https://cdn.withpet.com/stores/1002/thumb.jpg
                 metadata:
                   next_cursor: 20
                   has_more: true
@@ -1375,14 +1356,12 @@ paths:
                   - data
                   - metadata
               example:
-                success: true
                 data:
                   - like_place_id: "MTIzNDU="
                     store:
                       id: 1001
                       name: 행복동물병원
                       category:
-                        id: "1"
                         name: 동물병원
                       address:
                         province: 서울특별시
@@ -1390,16 +1369,10 @@ paths:
                         neighborhood: 역삼동
                         detail: 123-45
                         full_address: 서울특별시 강남구 역삼동 123-45
-                        postal_code: "06234"
+                        latitude: 37.55878709
+                        longtitude: 126.82717098
                       phone: 02-1234-5678
-                      rating: 4.5
-                      review_count: 128
-                      tags:
-                        - 24시간
-                        - 주차가능
                       distance: null
-                      thumbnail_url: https://cdn.withpet.com/stores/1001/thumb.jpg
-                      like_count: 342
                     created_at: "2025-11-05T10:30:00Z"
                   - like_place_id: "MTIzNDY="
                     store:
@@ -1414,16 +1387,10 @@ paths:
                         neighborhood: 삼성동
                         detail: 567-89
                         full_address: 서울특별시 강남구 삼성동 567-89
-                        postal_code: "06123"
+                        latitude: 37.55878709
+                        longtitude: 126.82717098
                       phone: 02-9876-5432
-                      rating: 4.8
-                      review_count: 256
-                      tags:
-                        - 전문의
-                        - 응급실
                       distance: null
-                      thumbnail_url: https://cdn.withpet.com/stores/1002/thumb.jpg
-                      like_count: 521
                     created_at: "2025-11-04T15:20:00Z"
                 metadata:
                   next_cursor: 20
@@ -1436,15 +1403,11 @@ paths:
 
 components:
   securitySchemes:
-    bearer_auth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT 토큰을 사용한 인증.
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: JWT 토큰을 사용한 인증.
 
   parameters:
     # 커뮤니티용 파라미터 (원본 유지, ID만 통합)
@@ -2068,7 +2031,7 @@ components:
       type: object
       properties:
         id:
-          type: string
+          type: integer
           description: 지역 ID
         name:
           type: string
@@ -2095,9 +2058,6 @@ components:
         code:
           type: string
           description: 카테고리 코드
-        icon:
-          type: string
-          description: 카테고리 아이콘
       required: [id, name, code]
 
     Address:
@@ -2258,16 +2218,13 @@ components:
             neighborhood: 역삼동
             detail: 123-45
             full_address: 서울특별시 강남구 역삼동 123-45
-            postal_code: "06234"
+            latitude: 37.55878709
+            longtitude: 126.82717098
           phone: 02-1234-5678
-          rating: 4.5
-          review_count: 128
           tags:
             - 24시간
             - 주차가능
           distance: null
-          thumbnail_url: https://cdn.withpet.com/stores/1001/thumb.jpg
-          like_count: 342
         created_at: "2025-11-05T10:30:00Z"
 
     Api_error:

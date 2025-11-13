@@ -1,4 +1,3 @@
-# apps/community/posts/services/listing.py
 from typing import Dict, Any
 from django.db.models import Q, Exists, OuterRef
 from django.core.paginator import Paginator, EmptyPage
@@ -6,19 +5,26 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+import hashlib
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemCommunityOut
-from apps.community.likes.models import Like  # Generic FK 기반 좋아요 모델을 가정
+from apps.community.likes.models import Like  # Generic FK 기반 좋아요 모델 가정
 
+# ✅ 공통 상수/헬퍼로 통일
+from apps.community.common import (
+    ALLOWED_SORT,
+    ALLOWED_SEARCH_IN,
+    CATEGORY_KOR_ALLOWED,
+    normalize_category_input,
+)
 
-# 허용 세트
-ALLOWED_CATEGORIES = {"전체", "자유게시판", "정보공유", "질문게시판"}
-ALLOWED_SORT = {"latest", "views", "likes"}
-ALLOWED_SEARCH_IN = {"title", "content", "title_content"}
+# 카테고리 허용값: 실제 3종 + 가상 "전체"
+ALLOWED_CATEGORIES = {"전체", *CATEGORY_KOR_ALLOWED}
+
 
 def _parse_params(qp) -> Dict[str, Any]:
-    # ✅ 보완점: view가 주어졌고 community가 아니면 400
+    # view가 주어졌고 community가 아니면 400
     v = qp.get("view")
     if v is not None and v != "community":
         raise ValidationError(detail={"code": "BAD_VIEW", "message": "view 파라미터는 community만 허용됩니다."})
@@ -72,8 +78,8 @@ def community_list(request):
     )
 
     # 카테고리: "전체"는 필터 미적용
-    cat = params["category"]
-    if cat and cat != "전체":
+    cat = normalize_category_input(params["category"])  # "전체" → None
+    if cat:
         qs = qs.filter(category__name=cat)
 
     # 검색
@@ -126,4 +132,23 @@ def community_list(request):
         "page_size": params["page_size"],
         "total": paginator.count if hasattr(paginator, "count") else 0,
     }
-    return Response(data, status=status.HTTP_200_OK)
+
+    # ✅ ETag/Cache-Control
+    # 페이지 구성 요소 + 마지막 항목 갱신시각을 해시로 묶어 약한 ETag 생성
+    last_updated = None
+    if page_obj:
+        # page_obj가 Paginator Page일 수도 있으니 list 변환 안전
+        items = list(page_obj)
+        last_updated = getattr(items[-1], "updated_at", None)
+
+    etag_src = f"community:{params['page']}:{params['page_size']}:{params['category']}:{params['sort']}:{params['q']}:{last_updated and last_updated.isoformat()}"
+    etag = f'W/"{hashlib.md5(etag_src.encode()).hexdigest()}"'
+
+    # 조건부 요청 처리: If-None-Match가 동일하면 304
+    if request.META.get("HTTP_IF_NONE_MATCH") == etag:
+        return Response(status=status.HTTP_304_NOT_MODIFIED)
+
+    resp = Response(data, status=status.HTTP_200_OK)
+    resp["ETag"] = etag
+    resp["Cache-Control"] = "public, max-age=30"
+    return resp

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 from corsheaders.defaults import default_headers
 
@@ -26,7 +27,9 @@ SECRET_KEY = 'django-insecure-a4yn1d0737k24l^=i_ebv2a)wg4if&9!9b^jjuko5*fzmc!c*9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['oz-withpet.kro.kr', "127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ['*']
+
+AUTH_USER_MODEL = "users.CustomUser"
 
 
 # Application definition
@@ -39,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'apps.users',
     'drf_spectacular',
     'corsheaders',
     "apps.community.posts.apps.PostsConfig",
@@ -66,6 +71,7 @@ REST_FRAMEWORK = {
     # 인증 방식 조정 필요
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -95,8 +101,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -147,6 +157,7 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'oz-withpet API',
     'DESCRIPTION': 'oz-withpet API',
     'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
     'SERVERS': [
         {'url': 'https://oz-withpet.kro.kr', 'description': 'for test'},
     ],
@@ -164,6 +175,21 @@ SPECTACULAR_SETTINGS = {
 # swagger editor를 로컬에서 테스트 할 경우 도메인 안전장치
 CORS_ALLOWED_ORIGINS = [
     "https://oz-withpet.kro.kr",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + ['authorization']
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # TLS 연결, host:port 사용
+        "LOCATION": "rediss://pet-service-cache-kvmoj6.serverless.apn2.cache.amazonaws.com:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SSL_CERT_REQS": None,  # TLS 인증서 검증 무시 (AWS Serverless 허용)
+        },
+        "TIMEOUT": 60 * 15,  # 기본 TTL 15분
+    }
+}

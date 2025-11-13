@@ -1,16 +1,30 @@
-name: Deploy Test
+name: Deploy to EC2
 
 on:
   push:
-    branches: [develop]   # develop 브랜치에 push될 때 실행
+    branches:
+      - main
 
 jobs:
-  test-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run sample command
-        run: echo "✅ GitHub Actions is working!"
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.PET_SERVICE_KEY }}
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@oz-withpet.kro.kr << 'EOF'
+            cd /home/ubuntu/WithPet-BE
+            git pull origin main
+            source /home/ubuntu/WithPet-BE/.venv/bin/activate
+            pip install -r requirements.txt
+            sudo systemctl restart gunicorn
+            sudo systemctl reload nginx   # <- nginx reload 추가
+          EOF
