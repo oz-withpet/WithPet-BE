@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import os
+import sys
 
 from datetime import timedelta
 from pathlib import Path
@@ -16,6 +18,8 @@ from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+sys.path.insert(0, str(BASE_DIR / 'apps'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -27,11 +31,11 @@ SECRET_KEY = 'django-insecure-a4yn1d0737k24l^=i_ebv2a)wg4if&9!9b^jjuko5*fzmc!c*9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
 AUTH_USER_MODEL = "users.CustomUser"
 
 COMMUNITY_POST_MODEL = "posts.Post"
+#로컬서버에서 접근허용 테스트용
+ALLOWED_HOSTS = ['oz-withpet.kro.kr', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -52,6 +56,8 @@ INSTALLED_APPS = [
     "apps.community.comments.apps.CommentsConfig",
     "apps.community.likes.apps.LikesConfig",
     "apps.community.reports.apps.ReportsConfig",
+    'django.contrib.postgres',
+    'maps',
 ]
 
 MIDDLEWARE = [
