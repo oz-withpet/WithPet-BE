@@ -1,31 +1,33 @@
 from rest_framework import serializers
-from apps.maps.models import Store, Category
-
-
-class CategorySerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Category
-        fields = ['id', 'name']
+from ..models import Store
 
 
 class StoreSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
+    category = serializers.SerializerMethodField()
     address = serializers.SerializerMethodField()
-    distance = serializers.FloatField(read_only=True, required=False)
+    name = serializers.CharField(source='store_name')
 
     class Meta:
         model = Store
-        fields = ['id', 'name', 'category', 'address', 'phone', 'distance']
+        fields = [
+            'id', 'name', 'category', 'address', 'phone',
+            'tags', 'operating_information',
+            'kakao_place_id'
+        ]
+
+    def get_category(self, obj):
+        return {
+            'code': obj.category_code,
+            'name': obj.category_name
+        }
 
     def get_address(self, obj):
         return {
             'province': obj.province,
             'district': obj.district,
             'neighborhood': obj.neighborhood,
-            'detail': obj.detail,
-            'full_address': obj.full_address,
-            'latitude': obj.latitude,
-            'longtitude': obj.longitude,
+            'detail': obj.detail_address,
+            'full_address': obj.road_address or obj.full_address_property,
+            'latitude': float(obj.latitude),
+            'longtitude': float(obj.longitude),
         }
-    # 주의: JSON에서 longtitude로 표기하려면 source='longitude' 사용

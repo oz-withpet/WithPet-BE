@@ -1,26 +1,31 @@
 from django.db.models import Q
-from apps.maps.models import Store
+from ..models import Store
 
 
 class StoreFilterService:
+
     @staticmethod
     def filter_stores(province=None, district=None, neighborhood=None,
-                      category=None, keyword=None):
-        queryset = Store.objects.all()
-        if any([province, district, neighborhood]):
-            queryset = Store.objects.filter_location(
-                province=province,
-                district=district,
-                neighborhood=neighborhood
-            )
+                      category=None, category_code=None, keyword=None):
 
-        if category:
-            queryset = queryset.filter(category__name=category)
+        queryset = Store.objects.active_only()
+
+        if province:
+            queryset = queryset.filter(province=province)
+        if district:
+            queryset = queryset.filter(district=district)
+        if neighborhood:
+            queryset = queryset.filter(neighborhood=neighborhood)
+
+        if category_code:
+            queryset = queryset.filter(category_code=category_code)
+        elif category:
+            queryset = queryset.filter(category_name=category)
 
         if keyword:
             queryset = queryset.filter(
-                Q(name__icontains=keyword) |
-                Q(full_address__icontains=keyword)
+                Q(store_name__icontains=keyword) |
+                Q(road_address__icontains=keyword)
             )
 
-        return queryset.order_by('name')
+        return queryset.order_by('store_name')

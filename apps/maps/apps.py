@@ -2,4 +2,5 @@ from django.apps import AppConfig
 
 class MapsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'maps'
+    name = 'apps.maps'
+    verbose_name = '지도 및 매장'
