@@ -31,5 +31,6 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("", include("apps.community.comments.urls")),
     path("", include("apps.community.likes.urls")),
+    path("", include("apps.community.reports.urls")),
 
 ]

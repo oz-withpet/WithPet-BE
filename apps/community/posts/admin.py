@@ -1,8 +1,10 @@
+# apps/community/posts/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.core.exceptions import SuspiciousFileOperation
+from django.utils import timezone  # NEW: 소프트 삭제/복구 액션에 사용
 
 from .models import Post, PostCategory
 
@@ -12,6 +14,19 @@ class PostCategoryAdmin(admin.ModelAdmin):
     list_display = ("id", "name")
     search_fields = ("name",)
     ordering = ("id",)
+
+
+# NEW: 일괄 소프트 삭제/복구 액션
+@admin.action(description="선택한 게시글 소프트 삭제")
+def soft_delete_posts(modeladmin, request, queryset):
+    now = timezone.now()
+    updated = queryset.update(is_deleted=True, deleted_at=now)
+    modeladmin.message_user(request, f"{updated}건 소프트 삭제 완료")
+
+@admin.action(description="선택한 게시글 복구")
+def restore_posts(modeladmin, request, queryset):
+    updated = queryset.update(is_deleted=False, deleted_at=None)
+    modeladmin.message_user(request, f"{updated}건 복구 완료")
 
 
 @admin.register(Post)
@@ -28,10 +43,14 @@ class PostAdmin(admin.ModelAdmin):
     raw_id_fields = ("author",)
     autocomplete_fields = ("category",)
 
+    # CHANGED: 관리 화면에서 확인하기 편하도록 읽기 전용 필드 유지 + 정렬/날짜/성능 설정
     readonly_fields = ("view_count", "like_count", "comment_count", "created_at", "updated_at")
     ordering = ("-created_at", "-id")
     date_hierarchy = "created_at"
     list_select_related = ("category", "author")
+
+    # NEW: 소프트 삭제/복구 액션 연결
+    actions = (soft_delete_posts, restore_posts)
 
     def get_search_fields(self, request):
         """

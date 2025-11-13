@@ -1,14 +1,18 @@
+# apps/community/common/id_codec.py
 import base64
 from rest_framework import serializers
 
+
 def id_to_public(id_int: int) -> str:
-    """정수 PK → urlsafe base64 문자열(패딩= 제거)"""
+    """정수 PK → urlsafe base64 문자열(패딩 '=' 제거)"""
     return base64.urlsafe_b64encode(str(int(id_int)).encode()).decode().rstrip("=")
+
 
 def id_from_public(pub: str) -> int:
     """urlsafe base64 문자열 → 정수 PK"""
     pad = "=" * ((4 - len(pub) % 4) % 4)
     return int(base64.urlsafe_b64decode((pub + pad).encode()).decode())
+
 
 class Base64IDField(serializers.Field):
     """Serializer에서 내부 int PK를 base64 문자열로 입출력 변환"""
