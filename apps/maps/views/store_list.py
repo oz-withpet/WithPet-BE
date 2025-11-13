@@ -1,17 +1,22 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from apps.maps.serializers import StoreSerializer
-from apps.maps.services import StoreFilterService
+from ..serializers import StoreSerializer
+from ..services import StoreFilterService
+from ..utils.locations_mapper import to_korean_province, to_korean_district
 
-#매장목록조회
+
 class StoreListAPIView(APIView):
     def get(self, request):
-        province = request.query_params.get('province')
-        district = request.query_params.get('district')
+        search = request.query_params.get('search')
+        province_eng = request.query_params.get('province')
+        district_eng = request.query_params.get('district')
         neighborhood = request.query_params.get('neighborhood')
         category = request.query_params.get('category')
-        keyword = request.query_params.get('keyword')
+        category_code = request.query_params.get('category_code')
+
+        province = to_korean_province(province_eng) if province_eng else None
+        district = to_korean_district(district_eng) if district_eng else None
 
         try:
             stores = StoreFilterService.filter_stores(
@@ -19,19 +24,18 @@ class StoreListAPIView(APIView):
                 district=district,
                 neighborhood=neighborhood,
                 category=category,
-                keyword=keyword
+                category_code=category_code,
+                keyword=search
             )
 
             serializer = StoreSerializer(stores, many=True)
 
             return Response({
-                'success': True,
                 'count': len(serializer.data),
                 'data': serializer.data
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({
-                'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

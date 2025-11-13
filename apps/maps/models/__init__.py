@@ -1,3 +1,3 @@
-from .store import Store, Category
+from .store import Store, LikePlace
 
-__all__ = ['Store', 'Category']
+__all__ = ['Store', 'LikePlace']

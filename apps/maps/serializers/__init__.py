@@ -1,3 +1,3 @@
-from .store import StoreSerializer, CategorySerializer
+from .store import StoreSerializer
 
-__all__ = ['StoreSerializer', 'CategorySerializer']
+__all__ = ['StoreSerializer']
