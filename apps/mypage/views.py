@@ -2,23 +2,22 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.core.paginator import Paginator, EmptyPage
+from rest_framework.exceptions import ValidationError
 
-from .repository.user_repo import UserRepository
-from .repository.post_repo import PostActivityRepository
-from .repository.map_repo import MapActivityRepository
-from .services.user_service import UserService
-from .services.post_activity_service import PostActivityService
-from .services.map_activity_service import MapActivityService
+from apps.mypage import user_service, post_activity_service, map_activity_service
 
-from .serializers import MyProfileSerializer, MyProfileUpdateSerializer, PasswordChangeSerializer, WithdrawSerializer, LikedStoreOut, MyReportPostOut
-from apps.community.posts.serializers import PostListItemCommunityOut # 목록용 Serializer
-from apps.common.responses import ApiSuccessWrapper, ApiErrorWrapper
-from apps.common.exceptions import NicknameConflictError, InvalidPasswordError, UserNotFoundError, NicknameMismatchError
-
-user_service = UserService(user_repo=UserRepository())
-post_activity_service = PostActivityService(repo=PostActivityRepository())
-map_activity_service = MapActivityService(repo=MapActivityRepository())
+from apps.mypage.serializers import (
+  MyProfileUpdateSerializer,
+  PasswordChangeSerializer,
+  WithdrawSerializer,
+  MyReportPostOut,
+  LikedStoreOut,
+)
+from apps.community.posts.serializers import PostListItemCommunityOut
+from apps.common.exceptions import (
+  NicknameConflictError, InvalidPasswordError, NicknameMismatchError,
+  ApiSuccessWrapper, ApiErrorWrapper,
+)
 
 
 class ProfileView(APIView):
@@ -35,7 +34,6 @@ class ProfileView(APIView):
     serializer.is_valid(raise_exception=True)
 
     try:
-      # 유효성 검사
       user_service.update_profile(request.user.id, serializer.validated_data)
       return Response(ApiSuccessWrapper(message="프로필이 수정되었습니다.").to_dict(), status=status.HTTP_200_OK)
     except NicknameConflictError as e:
@@ -45,7 +43,7 @@ class ProfileView(APIView):
 
 
 class NicknameCheckView(APIView):
-  permission_classes = [AllowAny] # 로그인 여부 X
+  permission_classes = [AllowAny]
 
   def get(self, request):
     # 닉네임 중복 검사
@@ -53,7 +51,7 @@ class NicknameCheckView(APIView):
 
     temp_serializer = MyProfileUpdateSerializer(data={'nickname': nickname})
     if not temp_serializer.is_valid(raise_exception=False):
-      return Response(temp_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+      return Response(ApiErrorWrapper(code="BAD_REQUEST", message="닉네임 형식이 올바르지 않습니다.").to_dict(), status=status.HTTP_400_BAD_REQUEST)
 
     is_available = user_service.check_nickname_availability(nickname)
 
@@ -69,9 +67,9 @@ class PasswordChangeView(APIView):
   def post(self, request):
     # 비밀번호 변경
     serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
+
     if not serializer.is_valid():
       return Response(ApiErrorWrapper(code="BAD_REQUEST", message="비밀번호 확인에 실패했습니다.").to_dict(), status=status.HTTP_400_BAD_REQUEST)
-
 
     new_password = serializer.validated_data['new_password']
     confirm_password = serializer.validated_data['new_password_confirm']
@@ -105,13 +103,12 @@ class WithdrawView(APIView):
 
 # 활동 목록 조회
 
-def _get_paginated_response(result: dict, serializer_class, request):
+def _get_paginated_response(result: dict, serializer_class, request, list_key="posts"):
 
-  # 목록 아이템 직렬화
   serializer = serializer_class(result['items'], many=True, context={'request': request})
 
   response_data = {
-    "posts": serializer.data,
+    list_key: serializer.data,
     "page": result.get('page', 1),
     "page_size": result.get('page_size', 20),
     "total": result.get('total'),
@@ -132,7 +129,7 @@ class MyPostsView(APIView):
     params = request.query_params.dict()
     result = post_activity_service.get_my_posts_list(request.user.id, params)
 
-    return _get_paginated_response(result, PostListItemCommunityOut, request)
+    return _get_paginated_response(result, PostListItemCommunityOut, request, list_key="posts")
 
 
 class MyLikesView(APIView):
@@ -143,7 +140,7 @@ class MyLikesView(APIView):
     params = request.query_params.dict()
     result = post_activity_service.get_my_liked_posts_list(request.user.id, params)
 
-    return _get_paginated_response(result, PostListItemCommunityOut, request)
+    return _get_paginated_response(result, PostListItemCommunityOut, request, list_key="posts")
 
 
 class MyReportsView(APIView):
@@ -152,16 +149,20 @@ class MyReportsView(APIView):
   def get(self, request):
     # 신고한 게시글 조회
     params = request.query_params.dict()
-    result = post_activity_service.get_my_reported_list(request.user.id, params)
 
-    serializer = MyReportPostOut(result['items'], many=True, context={'request': request})
+    try:
+      result = post_activity_service.get_my_reported_list(request.user.id, params)
 
-    return Response({
-      "reports": serializer.data,
-      "page": result.get('page', 1),
-      "page_size": result.get('page_size', 20),
-      "total": result.get('total'),
-    }, status=status.HTTP_200_OK)
+      serializer = MyReportPostOut(result['items'], many=True, context={'request': request})
+
+      return Response({
+        "reports": serializer.data,
+        "page": result.get('page', 1),
+        "page_size": result.get('page_size', 20),
+        "total": result.get('total'),
+      }, status=status.HTTP_200_OK)
+    except Exception:
+      return Response(ApiErrorWrapper(code="SERVER_ERROR", message="신고 목록 조회 실패").to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class MyFavoritePlacesView(APIView):
@@ -170,19 +171,26 @@ class MyFavoritePlacesView(APIView):
   def get(self, request):
     # 관심 장소 조회
     params = request.query_params.dict()
-    result = map_activity_service.get_my_liked_stores_list(request.user.id, params)
 
-    serializer = LikedStoreOut(result['items'], many=True, context={'request': request})
+    try:
+      result = map_activity_service.get_my_liked_stores_list(request.user.id, params)
 
-    response_data = {
-      "liked_stores": serializer.data,
-      "page": result.get('page', 1),
-      "page_size": result.get('page_size', 20),
-      "total": result.get('total'),
-    }
+      serializer = LikedStoreOut(result['items'], many=True, context={'request': request})
 
-    if result.get('next_after'):
-      response_data['next_after'] = result['next_after']
-      response_data['has_next'] = result['has_next']
+      response_data = {
+        "liked_stores": serializer.data,
+        "page": result.get('page', 1),
+        "page_size": result.get('page_size', 20),
+        "total": result.get('total'),
+      }
 
-    return Response(response_data, status=status.HTTP_200_OK)
+      if result.get('next_after'):
+        response_data['next_after'] = result['next_after']
+        response_data['has_next'] = result['has_next']
+
+      return Response(response_data, status=status.HTTP_200_OK)
+
+    except ValidationError as e:
+      return Response(ApiErrorWrapper(code="BAD_REQUEST", message="요청 파라미터 오류").to_dict(), status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+      return Response(ApiErrorWrapper(code="SERVER_ERROR", message="관심 장소 조회 실패").to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)

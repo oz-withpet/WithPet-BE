@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from apps.community.common import Base64IDField
 from apps.community.reports.models import Report
 from apps.community.posts.serializers import PostListItemCommunityOut
 from apps.maps.serializers.store import StoreSerializer
-from apps.maps.models.store_interest import StoreInterest
+from apps.community.common import Base64IDField
+from apps.maps.models.store import LikePlace
 
 User = get_user_model()
 
@@ -48,7 +48,7 @@ class LikedStoreOut(serializers.ModelSerializer):
   store = StoreSerializer(read_only=True)
 
   class Meta:
-    model = StoreInterest
+    model = LikePlace
     fields = ('like_place_id', 'store', 'created_at')
 
 # 신고 게시글
