@@ -1,4 +1,3 @@
-# apps/community/reports/repositories.py
 from typing import Any
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -10,21 +9,14 @@ from .models import Report
 
 
 class DuplicateReportError(Exception):
-    """동일 (user, content_type, object_id) 신고 중복."""
     pass
 
 
 class TargetNotFoundError(Exception):
-    """신고 대상(Post)을 찾을 수 없음."""
     pass
 
 
 def resolve_post_model() -> Any:
-    """
-    Post 모델을 안전하게 찾는다.
-    - 우선 settings.COMMUNITY_POST_MODEL = "app_label.ModelName" 지원
-    - 없으면 흔한 후보들을 순차 탐색
-    """
     label = getattr(settings, "COMMUNITY_POST_MODEL", None)
     if label and isinstance(label, str) and "." in label:
         app_label, model_name = label.split(".", 1)
