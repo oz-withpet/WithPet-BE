@@ -3,24 +3,32 @@
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
-from django.core.cache import cache
+from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiExample
 from apps.users.utils.email_service import send_verification_email
 
 class SendEmailCodeAPIView(APIView):
-    """
-    이메일 인증코드 발송 API
-    """
-    permission_classes = [permissions.AllowAny]
-
+    @extend_schema(
+        summary="이메일 인증번호 전송",
+        description="입력한 이메일 주소로 인증번호를 전송합니다.",
+        request={"email": "string"},
+        examples=[
+            OpenApiExample(
+                name="성공 예시",
+                value={"message": "인증 코드가 이메일로 전송되었습니다."},
+            ),
+            OpenApiExample(
+                name="실패 예시",
+                value={"error": "이메일이 필요합니다."},
+            ),
+        ],
+        responses={200: None, 400: None},
+    )
     def post(self, request):
-        email = request.data.get('email')
-
+        email = request.data.get("email")
         if not email:
-            return Response({'detail': '이메일을 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "이메일이 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 이메일 인증코드 전송
-        verification_code = send_verification_email(email)
-        cache.set(f"email_verification:{email}", verification_code, timeout=300)  # 5분 유효
-
-        return Response({'detail': '인증 코드가 이메일로 전송되었습니다.'}, status=status.HTTP_200_OK)
+        # 이메일 전송 로직 호출
+        send_verification_email(email)
+        return Response({"message": "인증 코드가 이메일로 전송되었습니다."}, status=status.HTTP_200_OK)
