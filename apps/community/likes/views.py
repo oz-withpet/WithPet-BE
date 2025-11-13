@@ -2,7 +2,6 @@ from rest_framework.views import APIView
 from .services import status as like_status, on as like_on, off as like_off
 
 class PostLikeView(APIView):
-    # GET: 누구나 / PUT, DELETE: services 내부에서 401 처리
     def get(self, request, post_id: str, *args, **kwargs):
         return like_status(request, post_id)
 

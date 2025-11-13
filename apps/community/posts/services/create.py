@@ -8,12 +8,11 @@ from apps.community.posts.serializers import PostCreateIn
 from apps.community.common.id_codec import id_to_public
 
 def create_post(request):
-    # DRF 파서(JSON/multipart)로 파싱된 데이터 사용
     ser = PostCreateIn(data=request.data, context={"request": request})
     ser.is_valid(raise_exception=True)
     data = ser.validated_data
 
-    # 카테고리 매핑 (시드 전제)
+    # 카테고리 매핑
     try:
         category = PostCategory.objects.get(name=data["category"])
     except PostCategory.DoesNotExist:
@@ -23,13 +22,13 @@ def create_post(request):
 
     with transaction.atomic():
         post = Post.objects.create(
-            author_id=request.user.id,     # 인증 필요
+            author_id=request.user.id,
             category=category,
             title=data["title"],
             content=data["content"],
             image=image if image else None,
         )
 
-    pub_id = id_to_public(post.id)        # 외부 노출용 base64
+    pub_id = id_to_public(post.id)
     headers = {"Location": f"/posts/{pub_id}"}
     return Response({"post_id": pub_id}, status=status.HTTP_201_CREATED, headers=headers)

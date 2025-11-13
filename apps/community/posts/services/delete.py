@@ -1,4 +1,3 @@
-# apps/community/posts/services/delete.py
 from __future__ import annotations
 
 from django.utils import timezone
@@ -18,12 +17,6 @@ def _alive_queryset():
 
 
 def delete_post(request, post_id: str) -> Response:
-    """
-    삭제 (DELETE /posts/{id})
-    - 소프트 삭제: is_deleted=True, deleted_at=now()
-    - 작성자만 가능
-    - 성공 시 204 No Content
-    """
     pk = id_from_public(post_id)
 
     try:

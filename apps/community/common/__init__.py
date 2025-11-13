@@ -1,5 +1,3 @@
-# apps/community/common/__init__.py
-
 from .id_codec import id_to_public, id_from_public, Base64IDField
 from .categories import (
     CATEGORY_ALL_KOR, CATEGORY_KOR_ALLOWED,
@@ -10,19 +8,15 @@ from .reports import (
     REASON_CODE_TO_LABEL, REASON_LABEL_TO_CODE,
     reason_code_to_label, reason_label_to_code, validate_report,
 )
-# ✅ 이번 단계에서 추가: 댓글 프리뷰
+
 from .comments_preview import preview_comments
 
 __all__ = [
-    # id/base64
     "id_to_public", "id_from_public", "Base64IDField",
-    # categories
     "CATEGORY_ALL_KOR", "CATEGORY_KOR_ALLOWED",
     "ALLOWED_SORT", "ALLOWED_SEARCH_IN",
     "is_all_category", "normalize_category_input", "default_sort_for_category",
-    # reports mapping/validation
     "REASON_CODE_TO_LABEL", "REASON_LABEL_TO_CODE",
     "reason_code_to_label", "reason_label_to_code", "validate_report",
-    # comments preview
     "preview_comments",
 ]

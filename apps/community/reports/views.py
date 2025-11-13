@@ -1,4 +1,3 @@
-# apps/community/reports/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -12,14 +11,6 @@ from .repositories import DuplicateReportError, TargetNotFoundError
 
 
 class PostReportView(APIView):
-    """
-    POST /posts/{post_id}/report
-    - 로그인 필수
-    - 포스트만 신고 가능
-    - reason: 한글 라벨 (스펙 열거)
-    - detail: '기타'일 때 5자 이상
-    - 중복 신고(동일 user+post) 시 409
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, post_id: str):
@@ -33,13 +24,13 @@ class PostReportView(APIView):
         try:
             report = create_post_report(
                 user=request.user,
-                public_post_id=post_id,  # 공개(base64) ID 그대로 전달
+                public_post_id=post_id,
                 reason_label=in_ser.validated_data["reason"],
                 detail=in_ser.validated_data.get("detail") or "",
             )
-        except ValueError as _e:  # 잘못된 base64 ID
+        except ValueError as _e:
             return Response({"code": "BAD_ID", "message": str(_e)}, status=status.HTTP_400_BAD_REQUEST)
-        except DjangoValidationError as _e:  # '기타' 5자 미만 등
+        except DjangoValidationError as _e:
             msg = getattr(_e, "message", None) or getattr(_e, "messages", [None])[0] or str(_e)
             return Response({"code": "VALIDATION_ERROR", "message": msg}, status=status.HTTP_400_BAD_REQUEST)
         except TargetNotFoundError:
