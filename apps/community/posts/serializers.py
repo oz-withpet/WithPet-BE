@@ -3,8 +3,6 @@ from apps.community.comments.serializers import CommentsBlockOut
 from apps.community.common import Base64IDField, CATEGORY_KOR_ALLOWED, id_to_public
 from .models import Post
 
-
-# ===== 입력 =====
 class PostCreateIn(serializers.Serializer):
     title = serializers.CharField(min_length=1, max_length=100)
     content = serializers.CharField(min_length=1, max_length=20000)
@@ -46,7 +44,6 @@ class PostUpdateIn(serializers.Serializer):
 
 # ===== 출력 =====
 class PostListItemMainOut(serializers.ModelSerializer):
-    # 스펙: 외부 ID는 base64 문자열
     id = Base64IDField(source="pk", read_only=True)
     image_url = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
@@ -108,7 +105,6 @@ class PostListItemCommunityOut(serializers.ModelSerializer):
 
     @staticmethod
     def get_is_liked_by_me(obj):
-        # 비로그인/기본 False, 뷰에서 컨텍스트로 True 주입 가능
         return bool(getattr(obj, "_is_liked_by_me", False))
 
 
@@ -121,5 +117,4 @@ class PostDetailOut(PostListItemCommunityOut):
 
 class PostDetailResponseOut(serializers.Serializer):
     post = PostDetailOut()
-    # 스펙: CommentsBlock (optional)
     comments = CommentsBlockOut(required=False)

@@ -24,7 +24,6 @@ class ReportStatus(models.TextChoices):
     REJECTED  = "REJECTED",  "기각"
 
 
-# ⚠️ 정적분석 경고 회피용 하드코딩 choices (동적 속성/반복 사용 안 함)
 REPORT_REASON_CHOICES: tuple[tuple[str, str], ...] = (
     ("HATE", "혐오 및 차별"),
     ("INSULT", "욕설 및 비방"),
@@ -73,7 +72,6 @@ class Report(models.Model):
         ]
 
     def clean(self):
-        # '기타(OTHER)'면 detail 5자 이상 등 도메인 검증
         validate_report(self.reason, self.detail)
 
     @property

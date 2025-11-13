@@ -1,4 +1,3 @@
-# apps/community/likes/services.py
 from __future__ import annotations
 import binascii
 from django.contrib.contenttypes.models import ContentType
@@ -32,14 +31,7 @@ def _decode_post_id_or_400(post_b64: str) -> int:
 
 
 def status(request, post_id: str) -> Response:
-    """
-    GET /posts/{post_id}/like
-    - 비로그인: is_liked=false
-    - 로그인: 현재 사용자의 좋아요 여부 + like_count
-    """
     pid = _decode_post_id_or_400(post_id)
-
-    # 존재/삭제여부 확인
     post = get_object_or_404(Post, id=pid, is_deleted=False)
 
     is_liked = False
@@ -52,21 +44,16 @@ def status(request, post_id: str) -> Response:
 
     return Response(
         {"is_liked": is_liked, "like_count": post.like_count},
-        status=http_status.HTTP_200_OK,                        # ✅ http_status
+        status=http_status.HTTP_200_OK,
     )
 
 
 def on(request, post_id: str) -> Response:
-    """
-    PUT /posts/{post_id}/like  (멱등)
-    - 생성된 경우에만 like_count +1
-    """
     r = _require_login(request)
     if r:
         return r
 
     pid = _decode_post_id_or_400(post_id)
-    # 존재/삭제여부 확인
     get_object_or_404(Post, id=pid, is_deleted=False)
 
     user_id = request.user.id
@@ -85,16 +72,11 @@ def on(request, post_id: str) -> Response:
 
 
 def off(request, post_id: str) -> Response:
-    """
-    DELETE /posts/{post_id}/like  (멱등)
-    - 삭제된 경우에만 like_count -1
-    """
     r = _require_login(request)
     if r:
         return r
 
     pid = _decode_post_id_or_400(post_id)
-    # 존재/삭제여부 확인
     get_object_or_404(Post, id=pid, is_deleted=False)
 
     user_id = request.user.id

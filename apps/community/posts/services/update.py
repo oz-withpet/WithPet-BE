@@ -17,9 +17,8 @@ from apps.community.posts.models import Post, PostCategory
 
 
 def _alive_qs():
-    """살아있는(Post.is_deleted=False) 글만 조회하는 쿼리셋."""
     try:
-        return Post.objects.alive()  # 커스텀 매니저가 있으면 사용
+        return Post.objects.alive()
     except AttributeError:
         return Post.objects.filter(is_deleted=False)
 
@@ -48,14 +47,10 @@ def _ensure_author_or_403(request_user, post: Post) -> None:
 def _apply_category_if_provided(
     post: Post, cat_raw: object, include_category_field: bool
 ) -> bool:
-    """
-    카테고리 필드는 요청에 'category' 키가 포함된 경우에만 반영.
-    변경된 경우 True 반환.
-    """
+
     if not include_category_field:
         return False
 
-    # 비우기(null)
     if cat_raw is None or (isinstance(cat_raw, str) and cat_raw.strip() == ""):
         if post.category_id is not None:
             post.category = None
@@ -98,13 +93,6 @@ def _ensure_lengths_if_provided(title: Optional[str], content: Optional[str]) ->
 
 @transaction.atomic
 def patch_post(request, post_id: str) -> Response:
-    """
-    부분 수정(PATCH):
-    - 허용 필드: title, content, category, image_delete, image
-    - JSON 또는 multipart/form-data 모두 지원
-    - JSON에서 image 키를 보내면 415(이미지 업로드는 multipart 필요)
-    - 응답: {post_id, updated_at}
-    """
     pk = id_from_public(post_id)
 
     try:
@@ -118,7 +106,6 @@ def patch_post(request, post_id: str) -> Response:
     data = request.data
     included_keys = set(data.keys())
 
-    # JSON에서 image 키가 오면 스펙 위배 → 415
     if not is_multipart and "image" in included_keys:
         raise UnsupportedMediaType(media_type=request.content_type or "application/json")
 
@@ -144,11 +131,9 @@ def patch_post(request, post_id: str) -> Response:
             post.content = c
             dirty = True
 
-    # category (요청에 키가 포함되었을 때만 반영)
     if _apply_category_if_provided(post, category_raw, include_category_field=("category" in included_keys)):
         dirty = True
 
-    # image_delete / image
     if image_delete_raw is not None:
         img_del = _parse_bool(image_delete_raw)
         if img_del:
@@ -162,7 +147,7 @@ def patch_post(request, post_id: str) -> Response:
         dirty = True
 
     if dirty:
-        post.save()  # auto_now=True로 updated_at 갱신
+        post.save()
 
     return Response(
         {

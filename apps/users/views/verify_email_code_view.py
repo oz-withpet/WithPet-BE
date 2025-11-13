@@ -3,47 +3,36 @@
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
-from django.core.cache import cache
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
-from rest_framework import serializers
+from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiExample
+from apps.users.utils.email_service import verify_email_code
 
 class VerifyEmailCodeAPIView(APIView):
-    """
-    이메일 인증코드 검증 API
-    ✅ 인증 성공 시 캐시에서 코드 삭제
-    """
-    permission_classes = [permissions.AllowAny]
-
-    # 🔹 Swagger 요청 파라미터 정의
-    @extend_schema(summary='API 설명을 추가하세요', responses={200: OpenApiResponse(description='성공')})
+    @extend_schema(
+        summary="이메일 인증번호 검증",
+        description="이메일과 인증번호를 입력받아 유효한지 확인합니다.",
+        request={"email": "string", "code": "string"},
+        examples=[
+            OpenApiExample(
+                name="성공 예시",
+                value={"verified": True, "message": "이메일 인증이 완료되었습니다."},
+            ),
+            OpenApiExample(
+                name="실패 예시",
+                value={"verified": False, "message": "인증번호가 일치하지 않습니다."},
+            ),
+        ],
+        responses={200: None, 400: None},
+    )
     def post(self, request):
         email = request.data.get("email")
-        code = request.data.get("verification_code")
+        code = request.data.get("code")
 
         if not email or not code:
-            return Response(
-                {"detail": "이메일과 인증코드를 모두 입력해주세요."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "이메일과 인증번호가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        cached_code = cache.get(email)
-        if cached_code is None:
-            return Response(
-                {"detail": "인증코드가 만료되었거나 존재하지 않습니다."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        verified = verify_email_code(email, code)
+        if verified:
+            return Response({"verified": True, "message": "이메일 인증이 완료되었습니다."})
+        return Response({"verified": False, "message": "인증번호가 일치하지 않습니다."})
 
-        if cached_code != code:
-            return Response(
-                {"detail": "인증코드가 올바르지 않습니다."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # ✅ 인증 성공 시 캐시에서 코드 삭제
-        cache.delete(email)
-
-        return Response(
-            {"detail": "이메일 인증이 완료되었습니다."},
-            status=status.HTTP_200_OK
-        )

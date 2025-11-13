@@ -3,7 +3,6 @@ from django.conf import settings
 from apps.community.common import id_to_public
 
 class Comment(models.Model):
-    # 문자열 FK: 앱 라벨이 'posts'여야 합니다(앱 config에 label 명시 권장)
     post = models.ForeignKey("posts.Post", on_delete=models.CASCADE, related_name="comments", db_index=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="comments")
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies")

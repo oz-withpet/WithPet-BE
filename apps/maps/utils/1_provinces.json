@@ -1,0 +1,70 @@
+[
+  {
+    "province_code": 11,
+    "province_name": "서울특별시"
+  },
+  {
+    "province_code": 26,
+    "province_name": "부산광역시"
+  },
+  {
+    "province_code": 27,
+    "province_name": "대구광역시"
+  },
+  {
+    "province_code": 28,
+    "province_name": "인천광역시"
+  },
+  {
+    "province_code": 29,
+    "province_name": "광주광역시"
+  },
+  {
+    "province_code": 30,
+    "province_name": "대전광역시"
+  },
+  {
+    "province_code": 31,
+    "province_name": "울산광역시"
+  },
+  {
+    "province_code": 36,
+    "province_name": "세종특별자치시"
+  },
+  {
+    "province_code": 41,
+    "province_name": "경기도"
+  },
+  {
+    "province_code": 43,
+    "province_name": "충청북도"
+  },
+  {
+    "province_code": 44,
+    "province_name": "충청남도"
+  },
+  {
+    "province_code": 46,
+    "province_name": "전라남도"
+  },
+  {
+    "province_code": 47,
+    "province_name": "경상북도"
+  },
+  {
+    "province_code": 48,
+    "province_name": "경상남도"
+  },
+  {
+    "province_code": 50,
+    "province_name": "제주특별자치도"
+  },
+  {
+    "province_code": 51,
+    "province_name": "강원특별자치도"
+  },
+  {
+    "province_code": 52,
+    "province_name": "전북특별자치도"
+  }
+]

@@ -1,4 +1,3 @@
-# apps/community/posts/services/detail.py
 from __future__ import annotations
 
 from typing import Optional, Dict
@@ -35,7 +34,6 @@ def _make_etag_detail(
     after_token: Optional[str],
     preview: Optional[Dict],
 ) -> str:
-    # 포스트 키(업데이트/카운터 포함)
     try:
         updated_iso = post.updated_at.isoformat()
     except (AttributeError, ValueError, TypeError):
@@ -43,7 +41,6 @@ def _make_etag_detail(
 
     post_key = f"{post.id}:{updated_iso}:{post.view_count}:{post.like_count}:{post.comment_count}"
 
-    # 댓글 프리뷰 키(있을 때만)
     comments_key = ""
     if include == "comments" and preview:
         items = preview.get("items") or []
@@ -57,10 +54,6 @@ def _make_etag_detail(
 
 
 def _get_post_or_404(post_int_id: int) -> Post:
-    """
-    select_related로 한 번에 가져오고, 없으면 DRF NotFound 발생.
-    get_object_or_404의 타입 경고 회피를 위해 직접 구현.
-    """
     post = (
         Post.objects.filter(id=post_int_id, is_deleted=False)
         .select_related("category", "author")
@@ -72,7 +65,6 @@ def _get_post_or_404(post_int_id: int) -> Post:
 
 
 def get_post_detail(request, post_id: str):
-    # base64 → int (구체 예외만 처리)
     try:
         internal_id = id_from_public(post_id)
     except (ValueError, TypeError, binascii.Error):
@@ -92,7 +84,6 @@ def get_post_detail(request, post_id: str):
                 raise ValidationError({"comments_after": "유효하지 않은 base64 ID입니다."})
         preview = preview_comments(post_id=post.id, limit=limit, after_id=after_int)
 
-    # ===== ETag / Cache-Control =====
     etag_val = _make_etag_detail(post, include, limit, after, preview)
 
     # 조건부 요청 처리
