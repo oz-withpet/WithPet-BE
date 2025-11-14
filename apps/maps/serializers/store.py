@@ -51,4 +51,6 @@ class StoreListSerializer(serializers.ModelSerializer):
             'province',
             'district',
             'phone',
+            'latitude',
+            'longitude'
         ]
