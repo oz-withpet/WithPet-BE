@@ -22,7 +22,7 @@ urlpatterns = [
     path('mypage/', include('apps.mypage.urls')),
 
     # --- 4. Maps ---
-    path('api/', include('apps.maps.urls')),
+    path('', include('apps.maps.urls')),
 ]
 
 def trigger_error(request):
