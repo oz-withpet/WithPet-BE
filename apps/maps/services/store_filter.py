@@ -1,31 +1,22 @@
-from django.db.models import Q
+import django_filters
+from django.db import models
 from ..models import Store
 
 
-class StoreFilterService:
+class StoreFilter(django_filters.FilterSet):
+    category = django_filters.CharFilter(field_name='category_code')
+    category_name = django_filters.CharFilter(field_name='category_name', lookup_expr='icontains')
+    province = django_filters.CharFilter(lookup_expr='exact')
+    district = django_filters.CharFilter(lookup_expr='exact')
+    neighborhood = django_filters.CharFilter(lookup_expr='exact')
+    search = django_filters.CharFilter(method='filter_search')
 
-    @staticmethod
-    def filter_stores(province=None, district=None, neighborhood=None,
-                      category=None, category_code=None, keyword=None):
+    class Meta:
+        model = Store
+        fields = ['category', 'province', 'district', 'neighborhood']
 
-        queryset = Store.objects.active_only()
-
-        if province:
-            queryset = queryset.filter(province=province)
-        if district:
-            queryset = queryset.filter(district=district)
-        if neighborhood:
-            queryset = queryset.filter(neighborhood=neighborhood)
-
-        if category_code:
-            queryset = queryset.filter(category_code=category_code)
-        elif category:
-            queryset = queryset.filter(category_name=category)
-
-        if keyword:
-            queryset = queryset.filter(
-                Q(store_name__icontains=keyword) |
-                Q(road_address__icontains=keyword)
-            )
-
-        return queryset.order_by('store_name')
+    def filter_search(self, queryset, name, value):
+        return queryset.filter(
+            models.Q(store_name__icontains=value) |
+            models.Q(road_address__icontains=value)
+        )

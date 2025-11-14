@@ -1,3 +1,3 @@
-from .store_filter import StoreFilterService
+from .store_filter import StoreFilter
 
-__all__ = ['StoreFilterService']
+__all__ = ['StoreFilter']

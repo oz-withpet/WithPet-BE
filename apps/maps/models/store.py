@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
-from ..managers.store import StoreManager
 
 
 class Store(models.Model):
@@ -29,7 +28,6 @@ class Store(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    objects = StoreManager()
 
     class Meta:
         db_table = 'pet_stores'
