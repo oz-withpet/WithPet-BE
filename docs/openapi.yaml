@@ -587,7 +587,7 @@ paths:
         '500':
           $ref: '#/components/responses/Error500'
 
-  /auth/refresh:
+  /auth/token/refresh/:
     post:
       tags: [Auth]
       summary: 토큰 갱신
@@ -638,11 +638,11 @@ paths:
                 $ref: '#/components/schemas/Api_error_wrapper'
         '500':
           $ref: '#/components/responses/Error500'
-          
+
   # -----------------------------
   # MyPage ( 마이 페이지 API )
   # -----------------------------
-  
+
   /mypage/profile:
     get:
       tags: [Mypage]
@@ -673,7 +673,7 @@ paths:
 
     patch:
       tags: [Mypage]
-      summary: 내 프로필 수정 
+      summary: 내 프로필 수정
       description: 닉네임 변경, 성별, 반려동물 유무 등을 선택 수정합니다. 닉네임 변경 시 서버는 중복 체크를 확인합니다. (부분 수정 허용)
       security:
         - bearerAuth: []
@@ -820,7 +820,7 @@ paths:
   /mypage/posts:
     get:
       tags: [Mypage]
-      summary: 내가 작성한 게시글 목록 조회 
+      summary: 내가 작성한 게시글 목록 조회
       description: 현재 로그인한 사용자가 작성한 게시글 목록을 조회합니다.
       security:
         - bearerAuth: []
@@ -960,6 +960,48 @@ paths:
                 page: 1
                 page_size: 20
                 total: 2
+        '401':
+          $ref: '#/components/responses/Error401'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /mypage/favorites/places:
+    get:
+      tags: [Mypage]
+      summary: 내 관심 장소 목록 조회
+      description: 현재 로그인한 사용자가 지도 기능에서 추가한 관심 장소(매장)들의 목록을 조회합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/After'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyLikedStoreListResponse'
+              example:
+                liked_stores:
+                  - like_place_id: "MTIzNDU="
+                    store:
+                      id: 1001
+                      name: 행복동물병원
+                      category:
+                        id: "1"
+                        name: 동물병원
+                      address:
+                        full_address: 서울특별시 강남구 역삼동 123-45
+                        latitude: 37.55878709
+                        longtitude: 126.82717098
+                      like_count: 342
+                    created_at: "2025-11-05T10:30:00Z"
+                page: 1
+                page_size: 20
+                total: 15
         '401':
           $ref: '#/components/responses/Error401'
         '500':
@@ -1427,6 +1469,7 @@ components:
       in: query
       description: |
         커서 기반 무한스크롤 토큰(메인 전용).
+        형식은 **불투명 문자열**입니다(예: URL-safe base64). 클라이언트는 그대로 보관/전달만 하세요.
         이전 응답의 next_after 값을 그대로 전달하세요. 첫 페이지는 생략.
       schema:
         type: string
@@ -1512,7 +1555,9 @@ components:
     CommentsAfter:
       name: comments_after
       in: query
-      description: 댓글 프리뷰 커서(더보기용).
+      description: |
+        댓글 프리뷰 커서(더보기용).
+        형식은 **불투명 문자열**입니다(예: URL-safe base64). 클라이언트는 그대로 보관/전달만 하세요.
       schema:
         type: string
         example: cmt_cursor_20251021_030600
@@ -1551,7 +1596,7 @@ components:
       example:
         user_id: MTIzNDU2Nzg5MDEyMw==
         nickname: "따뜻한 연근"
-        
+
     MyProfileResponse:
       type: object
       properties:
@@ -1620,6 +1665,40 @@ components:
           minLength: 8
       required: [new_password, new_password_confirm]
 
+    MyLikedStoreListResponse:
+      type: object
+      description: "내 관심 장소(매장) 목록 응답"
+      properties:
+        liked_stores:
+          type: array
+          items:
+            $ref: '#/components/schemas/Liked_store' # Liked_store 객체 참조
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+      required: [liked_stores, page, page_size, total]
+      example:
+        liked_stores:
+          - like_place_id: "MTIzNDU="
+            store:
+              id: 1001
+              name: 행복동물병원
+              category:
+                id: "1"
+                name: 동물병원
+              address:
+                full_address: 서울특별시 강남구 역삼동 123-45
+                latitude: 37.55878709
+                longtitude: 126.82717098
+              like_count: 342
+            created_at: "2025-11-05T10:30:00Z"
+        page: 1
+        page_size: 20
+        total: 15
+
     MyReportPost:
       type: object
       properties:
@@ -1674,7 +1753,7 @@ components:
           description: "게시글 내용의 요약(처음 N자, 예: 180~200자). 서버에서 길이 제한에 맞춰 잘라 반환."
         category:
           type: string
-          enum: [전체, 자유게시판, 정보공유, 질문게시판]
+          enum: [자유게시판, 정보공유, 질문게시판]
         image_url:
           type: string
           nullable: true
@@ -1884,7 +1963,7 @@ components:
           maxLength: 20000
         category:
           type: string
-          enum: [전체, 자유게시판, 정보공유, 질문게시판]
+          enum: [자유게시판, 정보공유, 질문게시판]
       required: [title, content, category]
       example:
         title: "반려견 산책 메이트 구해요"
@@ -1906,7 +1985,7 @@ components:
           nullable: true
         category:
           type: string
-          enum: [전체, 자유게시판, 정보공유, 질문게시판]
+          enum: [자유게시판, 정보공유, 질문게시판]
           nullable: true
         image_delete:
           type: boolean
@@ -2307,7 +2386,7 @@ components:
                 type: string
               category:
                 type: string
-                enum: [전체, 자유게시판, 정보공유, 질문게시판]
+                enum: [자유게시판, 정보공유, 질문게시판]
               image:
                 type: string
                 format: binary
@@ -2344,7 +2423,7 @@ components:
                 nullable: true
               category:
                 type: string
-                enum: [전체, 자유게시판, 정보공유, 질문게시판]
+                enum: [자유게시판, 정보공유, 질문게시판]
                 nullable: true
               image:
                 type: string
