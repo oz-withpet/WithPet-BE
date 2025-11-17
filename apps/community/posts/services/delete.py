@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 
-from apps.community.common import id_from_public
+from apps.community.common import id_from_path_param
 from apps.community.posts.models import Post
 
 
@@ -17,7 +17,7 @@ def _alive_queryset():
 
 
 def delete_post(request, post_id: str) -> Response:
-    pk = id_from_public(post_id)
+    pk = id_from_path_param(post_id)
 
     try:
         post = _alive_queryset().only("id", "author_id", "is_deleted").get(pk=pk)
@@ -30,7 +30,6 @@ def delete_post(request, post_id: str) -> Response:
     if post.author_id != user.id:
         raise PermissionDenied("본인 글만 삭제할 수 있습니다.")
 
-    # 소프트 삭제
     post.is_deleted = True
     post.deleted_at = timezone.now()
     post.save(update_fields=["is_deleted", "deleted_at"])

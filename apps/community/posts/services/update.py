@@ -1,3 +1,4 @@
+# apps/community/posts/services/update.py
 from __future__ import annotations
 
 from typing import Optional
@@ -12,7 +13,8 @@ from rest_framework.exceptions import (
     UnsupportedMediaType,
 )
 
-from apps.community.common import id_from_public, CATEGORY_KOR_ALLOWED
+# 🔁 변경: id_from_public → id_from_path_param (숫자/문자열 모두 허용)
+from apps.community.common import id_from_path_param, CATEGORY_KOR_ALLOWED
 from apps.community.posts.models import Post, PostCategory
 
 
@@ -47,10 +49,11 @@ def _ensure_author_or_403(request_user, post: Post) -> None:
 def _apply_category_if_provided(
     post: Post, cat_raw: object, include_category_field: bool
 ) -> bool:
-
+    # category 키 자체가 없으면 건드리지 않음
     if not include_category_field:
         return False
 
+    # 빈 문자열/None → 카테고리 제거
     if cat_raw is None or (isinstance(cat_raw, str) and cat_raw.strip() == ""):
         if post.category_id is not None:
             post.category = None
@@ -93,7 +96,8 @@ def _ensure_lengths_if_provided(title: Optional[str], content: Optional[str]) ->
 
 @transaction.atomic
 def patch_post(request, post_id: str) -> Response:
-    pk = id_from_public(post_id)
+    # ✅ 경로 파라미터: 숫자면 그대로, 아니면 base64(public)로 해석
+    pk = id_from_path_param(post_id)
 
     try:
         post = _alive_qs().select_related("author", "category").get(pk=pk)
@@ -106,6 +110,7 @@ def patch_post(request, post_id: str) -> Response:
     data = request.data
     included_keys = set(data.keys())
 
+    # JSON 요청에 image 바이너리 키가 오면 415
     if not is_multipart and "image" in included_keys:
         raise UnsupportedMediaType(media_type=request.content_type or "application/json")
 
@@ -151,7 +156,8 @@ def patch_post(request, post_id: str) -> Response:
 
     return Response(
         {
-            "post_id": post.public_id,  # base64 공개 ID
+            # 🔁 응답은 기존 스펙 유지: 공개 ID(base64) 반환
+            "post_id": post.public_id,
             "updated_at": post.updated_at.isoformat().replace("+00:00", "Z"),
         },
         status=status.HTTP_200_OK,

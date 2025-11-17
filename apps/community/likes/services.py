@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status as http_status            # ✅ 별칭 사용
 from rest_framework.exceptions import ValidationError
 
-from apps.community.common import id_from_public
+from apps.community.common import id_from_path_param
 from apps.community.posts.models import Post
 from .models import Like
 
@@ -25,7 +25,7 @@ def _require_login(request):
 
 def _decode_post_id_or_400(post_b64: str) -> int:
     try:
-        return id_from_public(post_b64)
+        return id_from_path_param(post_b64)
     except (ValueError, binascii.Error):
         raise ValidationError({"post_id": "유효하지 않은 base64 ID입니다."})
 
