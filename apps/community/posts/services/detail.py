@@ -57,6 +57,7 @@ def _get_post_or_404(post_int_id: int) -> Post:
     post = (
         Post.objects.filter(id=post_int_id, is_deleted=False)
         .select_related("category", "author")
+        .prefetch_related("images")
         .first()
     )
     if not post:

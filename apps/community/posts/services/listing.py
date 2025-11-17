@@ -11,7 +11,6 @@ from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemCommunityOut
 from apps.community.likes.models import Like  # Generic FK 기반 좋아요 모델 가정
 
-# ✅ 공통 상수/헬퍼로 통일
 from apps.community.common import (
     ALLOWED_SORT,
     ALLOWED_SEARCH_IN,
@@ -70,6 +69,7 @@ def community_list(request):
     qs = (
         Post.objects
         .select_related("category")
+        .prefetch_related("images")
         .filter(is_deleted=False)
     )
 
