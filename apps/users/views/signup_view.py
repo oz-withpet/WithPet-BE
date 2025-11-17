@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions, generics
+from rest_framework import status, permissions
 from apps.users.serializers.signup_serializer import SignupSerializer
 from apps.users.utils.email_service import send_verification_email
 from apps.users.models import CustomUser

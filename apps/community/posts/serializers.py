@@ -6,7 +6,7 @@ from typing import Optional, List
 from rest_framework import serializers
 from apps.community.comments.serializers import CommentsBlockOut
 from apps.community.common import Base64IDField, CATEGORY_KOR_ALLOWED, id_to_public
-from .models import Post, PostImage
+from .models import Post
 
 
 # ---------- 입력 ----------
