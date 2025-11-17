@@ -1,3 +1,4 @@
+# apps/community/posts/services/listing.py
 from typing import Dict, Any
 from django.db.models import Q, Exists, OuterRef
 from django.core.paginator import Paginator, EmptyPage
@@ -9,7 +10,7 @@ import hashlib
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemCommunityOut
-from apps.community.likes.models import Like  # Generic FK 기반 좋아요 모델 가정
+from apps.community.likes.models import Like  # Generic FK 기반 좋아요 모델
 
 from apps.community.common import (
     ALLOWED_SORT,
@@ -18,6 +19,7 @@ from apps.community.common import (
     normalize_category_input,
 )
 
+# 허용 카테고리 집합 (스펙과 일치)
 ALLOWED_CATEGORIES = {"전체", *CATEGORY_KOR_ALLOWED}
 
 
@@ -69,7 +71,7 @@ def community_list(request):
     qs = (
         Post.objects
         .select_related("category")
-        .prefetch_related("images")
+        .prefetch_related("images")              # ✅ 다중 이미지 N+1 방지
         .filter(is_deleted=False)
     )
 
@@ -98,6 +100,7 @@ def community_list(request):
     else:  # likes
         qs = qs.order_by("-like_count", "-id")
 
+    # ✅ 로그인 사용자라면 is_liked_by_me 주입
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
         ct_post = ContentType.objects.get_for_model(Post)
@@ -118,7 +121,7 @@ def community_list(request):
     except EmptyPage:
         page_obj = []
 
-    # 직렬화
+    # 직렬화 (request context 넘겨서 절대 URL 생성 지원)
     ser = PostListItemCommunityOut(page_obj, many=True, context={"request": request})
 
     data = {
@@ -128,12 +131,16 @@ def community_list(request):
         "total": paginator.count if hasattr(paginator, "count") else 0,
     }
 
+    # ETag 생성 (캐시)
     last_updated = None
     if page_obj:
         items = list(page_obj)
         last_updated = getattr(items[-1], "updated_at", None)
 
-    etag_src = f"community:{params['page']}:{params['page_size']}:{params['category']}:{params['sort']}:{params['q']}:{last_updated and last_updated.isoformat()}"
+    etag_src = (
+        f"community:{params['page']}:{params['page_size']}:{params['category']}:"
+        f"{params['sort']}:{params['q']}:{last_updated and last_updated.isoformat()}"
+    )
     etag = f'W/"{hashlib.md5(etag_src.encode()).hexdigest()}"'
 
     if request.META.get("HTTP_IF_NONE_MATCH") == etag:
