@@ -17,7 +17,9 @@ class PostActivityRepository:
 
   def _get_posts_base_qs(self) -> QuerySet[Post]:
     """목록 조회 시 공통 쿼리셋 (N+1, 삭제 제외)"""
-    return Post.objects.alive().select_related("category", "author")
+    return Post.objects.alive().select_related(
+      "category", "author"
+    ).prefetch_related("images")
 
   def _annotate_is_liked_by_me(self, qs: QuerySet[Post], user_id: int) -> QuerySet[Post]:
     """게시글 목록에 좋아요 여부 추가"""
