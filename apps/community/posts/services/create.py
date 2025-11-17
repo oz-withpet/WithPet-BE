@@ -28,7 +28,6 @@ def create_post(request):
     legacy_single = data.get("image")
     files = request.FILES.getlist("images")
 
-    # 개수 검증(legacy 1장 + images[] N장)
     existing_legacy = 1 if legacy_single else 0
     _validate_images_count(existing_legacy, len(files))
 
