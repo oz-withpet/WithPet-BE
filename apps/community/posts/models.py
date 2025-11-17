@@ -58,3 +58,19 @@ class Post(models.Model):
 
     def __str__(self):
         return f"[{self.id}] {self.title}"
+
+class PostImage(models.Model):
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name="images", db_index=True
+    )
+    image = models.ImageField(upload_to="posts/%Y/%m/")
+    order = models.PositiveIntegerField(default=0, db_index=True)  # 정렬용(선택)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "post_image"
+        ordering = ("order", "id")
+
+    def __str__(self):
+        return f"PostImage<{self.post_id}:{self.id}>"
