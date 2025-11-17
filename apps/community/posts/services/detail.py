@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError, NotFound
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostDetailOut, CommentsBlockOut
-from apps.community.common import id_from_path_param, id_from_public, preview_comments
+from apps.community.common import id_from_path_param, preview_comments
 
 
 def _parse_params(qp) -> tuple[Optional[str], int, Optional[str]]:
@@ -59,6 +59,7 @@ def _get_post_or_404(post_int_id: int) -> Post:
     post = (
         Post.objects.filter(id=post_int_id, is_deleted=False)
         .select_related("category", "author")
+        .prefetch_related("images")
         .first()
     )
     if not post:
@@ -84,7 +85,7 @@ def get_post_detail(request, post_id: str):
         if after:
             # 댓글 프리뷰 커서는 기존 스펙대로 base64만 허용 (변경 없음)
             try:
-                after_int = id_from_public(after)
+                after_int = id_from_path_param(after)
             except (ValueError, TypeError, binascii.Error):
                 raise ValidationError({"comments_after": "유효하지 않은 base64 ID입니다."})
         preview = preview_comments(post_id=post.id, limit=limit, after_id=after_int)

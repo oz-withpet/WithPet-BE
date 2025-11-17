@@ -37,6 +37,8 @@ COMMUNITY_POST_MODEL = "posts.Post"
 #로컬서버에서 접근허용 테스트용
 ALLOWED_HOSTS = ['oz-withpet.kro.kr', '127.0.0.1', 'localhost']
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Application definition
 

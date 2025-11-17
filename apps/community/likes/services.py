@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
-from rest_framework import status as http_status            # ✅ 별칭 사용
+from rest_framework import status as http_status
 from rest_framework.exceptions import ValidationError
 
 from apps.community.common import id_from_path_param
@@ -18,7 +18,7 @@ def _require_login(request):
     if not user or not user.is_authenticated:
         return Response(
             {"code": "UNAUTHORIZED", "message": "로그인이 필요합니다."},
-            status=http_status.HTTP_401_UNAUTHORIZED,          # ✅ http_status
+            status=http_status.HTTP_401_UNAUTHORIZED,
         )
     return None
 

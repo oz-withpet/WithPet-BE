@@ -5,8 +5,13 @@ from django.db import models
 from django.core.exceptions import SuspiciousFileOperation
 from django.utils import timezone  # NEW: 소프트 삭제/복구 액션에 사용
 
-from .models import Post, PostCategory
+from .models import Post, PostCategory, PostImage
 
+class PostImageInline(admin.TabularInline):
+    model = PostImage
+    extra = 0
+    fields = ("image", "order", "created_at")
+    readonly_fields = ("created_at",)
 
 @admin.register(PostCategory)
 class PostCategoryAdmin(admin.ModelAdmin):
@@ -46,6 +51,7 @@ class PostAdmin(admin.ModelAdmin):
     list_select_related = ("category", "author")
 
     actions = (soft_delete_posts, restore_posts)
+    inlines = [PostImageInline]
 
     def get_search_fields(self, request):
         base = ["title", "content"]

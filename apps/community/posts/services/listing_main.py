@@ -87,6 +87,7 @@ def main_list(request):
     qs: models.QuerySet = (
         Post.objects
         .select_related("category")
+        .prefetch_related("images")
         .filter(is_deleted=False)
         .order_by("-created_at", "-id")
     )
