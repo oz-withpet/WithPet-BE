@@ -14,9 +14,9 @@ from rest_framework.exceptions import (
 )
 
 from apps.community.common import id_from_public, CATEGORY_KOR_ALLOWED
-from apps.community.posts.models import Post, PostCategory, PostImage  # ✅ PostImage 사용
+from apps.community.posts.models import Post, PostCategory, PostImage
 
-MAX_IMAGES = 5  # ✅ 총 최대 5장(legacy 단일 + PostImage 합산)
+MAX_IMAGES = 5
 
 
 def _alive_qs():
