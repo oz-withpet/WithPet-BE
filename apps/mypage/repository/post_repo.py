@@ -1,4 +1,4 @@
-from django.db.models import QuerySet, Exists, OuterRef
+from django.db.models import QuerySet, Exists, OuterRef, Prefetch
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
 
@@ -63,7 +63,15 @@ class PostActivityRepository:
   def get_my_reported_items(self, user_id: int) -> QuerySet[Report]:
     """내가 신고한 게시글 + 최신순 ( target 역참조 )"""
 
+    # 1. Post 쿼리셋을 미리 정의 (PostImage를 prefetch)
+    #    _get_posts_base_qs()를 재사용해도 됩니다.
+    post_qs = self._get_posts_base_qs()
+
+    # 2. 'target' (GenericForeignKey)을 prefetch할 때,
+    #    위에서 정의한 쿼리셋(post_qs)을 사용하도록 지정
+    prefetch_target = Prefetch('target', queryset=post_qs)
+
     return Report.objects.filter(
       user_id=user_id,
       content_type=self.post_content_type
-    ).select_related('user').order_by('-created_at', '-id')
+    ).select_related('user').prefetch_related(prefetch_target).order_by('-created_at', '-id')
