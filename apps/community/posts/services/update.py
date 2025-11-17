@@ -13,7 +13,7 @@ from rest_framework.exceptions import (
     UnsupportedMediaType,
 )
 
-from apps.community.common import id_from_public, CATEGORY_KOR_ALLOWED
+from apps.community.common import id_from_path_param, CATEGORY_KOR_ALLOWED
 from apps.community.posts.models import Post, PostCategory, PostImage
 
 MAX_IMAGES = 5
@@ -138,7 +138,7 @@ def _validate_total_after_change(current_total: int, add_count: int) -> None:
 @transaction.atomic
 def patch_post(request, post_id: str) -> Response:
     # ------ 대상 조회 & 권한 ------
-    pk = id_from_public(post_id)
+    pk = id_from_path_param(post_id)
 
     try:
         post = _alive_qs().select_related("author", "category").get(pk=pk)
