@@ -33,6 +33,8 @@ AUTH_USER_MODEL = "users.CustomUser"
 
 COMMUNITY_POST_MODEL = "posts.Post"
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Application definition
 

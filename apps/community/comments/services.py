@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError, PermissionDenied
 
-from apps.community.common import id_from_public, id_to_public
+from apps.community.common import id_from_path_param, id_to_public
 from apps.community.posts.models import Post
 from .models import Comment
 from .serializers import CommentCreateIn, CommentUpdateIn
@@ -33,7 +33,7 @@ def create(request, post_id: str):
 
     # post_id(base64) → int
     try:
-        internal_pid = id_from_public(post_id)
+        internal_pid = id_from_path_param(post_id)
     except (ValueError, binascii.Error):
         raise ValidationError({"post_id": "유효하지 않은 base64 ID입니다."})
 
@@ -58,7 +58,7 @@ def update(request, comment_id: str):
     ser.is_valid(raise_exception=True)
 
     try:
-        cid = id_from_public(comment_id)
+        cid = id_from_path_param(comment_id)
     except (ValueError, binascii.Error):
         raise ValidationError({"comment_id": "유효하지 않은 base64 ID입니다."})
 
@@ -83,7 +83,7 @@ def delete(request, comment_id: str):
         return r
 
     try:
-        cid = id_from_public(comment_id)
+        cid = id_from_path_param(comment_id)
     except (ValueError, binascii.Error):
         raise ValidationError({"comment_id": "유효하지 않은 base64 ID입니다."})
 
