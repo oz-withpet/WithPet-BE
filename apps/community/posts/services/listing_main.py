@@ -1,3 +1,4 @@
+# apps/community/posts/services/listing_main.py
 from __future__ import annotations
 
 from typing import Dict, Any, Tuple, Optional, Sequence, List
@@ -7,13 +8,15 @@ import hashlib
 from datetime import datetime, timezone as dt_timezone
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemMainOut
+from apps.community.likes.models import Like  # ✅ is_liked_by_me 주입에 필요
 
 FORBIDDEN_ON_MAIN = {"page", "page_size", "category", "sort", "q", "search_in"}
 
@@ -87,10 +90,24 @@ def main_list(request):
     qs: models.QuerySet = (
         Post.objects
         .select_related("category")
-        .prefetch_related("images")
+        .prefetch_related("images")     # ✅ 여러 이미지 N+1 방지
         .filter(is_deleted=False)
         .order_by("-created_at", "-id")
     )
+
+    # ✅ 로그인 사용자라면 is_liked_by_me 주입
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False):
+        ct_post = ContentType.objects.get_for_model(Post)
+        qs = qs.annotate(
+            is_liked_by_me=Exists(
+                Like.objects.filter(
+                    user_id=user.id,
+                    content_type=ct_post,
+                    object_id=OuterRef("id"),
+                )
+            )
+        )
 
     after_token = params["after"]
     if after_token:
@@ -107,6 +124,7 @@ def main_list(request):
         tail = page[-1]
         next_after = _encode_cursor(tail.created_at, tail.id)
 
+    # ✅ 이제 PostListItemMainOut == "풍부한 버전"(PostListItemFullOut 상속)
     ser = PostListItemMainOut(page, many=True, context={"request": request})
     data = {"posts": ser.data, "has_next": has_next, "next_after": next_after}
 

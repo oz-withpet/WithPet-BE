@@ -94,89 +94,76 @@ class _ImageURLMixin:
             for pi in rel.all():
                 url = getattr(getattr(pi, "image", None), "url", None)
                 if url:
-                    urls.append(self._abs(url))
+                    absu = self._abs(url)
+                    if absu:
+                        urls.append(absu)
         else:
             # 하위호환: 단일 이미지만 있는 경우
             legacy = getattr(obj, "image", None)
             if legacy and getattr(legacy, "url", None):
-                urls.append(self._abs(legacy.url))
+                absu = self._abs(legacy.url)
+                if absu:
+                    urls.append(absu)
         return urls
 
 
-# ---------- 출력 ----------
+# ---------- 출력: 항상 "풍부한 버전" ----------
 
-class PostListItemMainOut(serializers.ModelSerializer, _ImageURLMixin):
+class PostListItemFullOut(serializers.ModelSerializer, _ImageURLMixin):
+    """
+    목록에서도 상세와 거의 동일한 풍부한 정보 제공:
+    - 기본 필드 + content + 이미지 배열 + 좋아요 여부
+    """
     id = Base64IDField(source="pk", read_only=True)
-    image_url = serializers.SerializerMethodField()
-    author = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Post
-        fields = ("id", "title", "image_url", "author")
-
-    def get_image_url(self, obj: Post) -> Optional[str]:
-        return self._first_image_url(obj)
-
-    def get_author(self, obj: Post):
-        # Author.user_id도 base64로 노출
-        uid = id_to_public(obj.author_id) if obj.author_id is not None else None
-        return {"user_id": uid, "nickname": ""}
-
-
-class PostListItemCommunityOut(serializers.ModelSerializer, _ImageURLMixin):
-    id = Base64IDField(source="pk", read_only=True)
-    content_snippet = serializers.SerializerMethodField()
     category = serializers.CharField(source="category.name", allow_null=True)
-    image_url = serializers.SerializerMethodField()    # 썸네일(첫 장)
-    image_urls = serializers.SerializerMethodField()   # 👈 전체 이미지 배열 추가
     author = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()     # 대표(첫 장)
+    images = serializers.SerializerMethodField()        # 전체 이미지 배열
     is_liked_by_me = serializers.SerializerMethodField()
+    content = serializers.CharField()
 
     class Meta:
         model = Post
         fields = (
-            "id",
-            "title",
-            "content_snippet",
-            "category",
-            "image_url",
-            "image_urls",          # 👈 추가
-            "author",
-            "created_at",
-            "updated_at",
-            "view_count",
-            "like_count",
-            "comment_count",
+            "id", "title", "content", "category",
+            "image_url", "images", "author",
+            "created_at", "updated_at",
+            "view_count", "like_count", "comment_count",
             "is_liked_by_me",
         )
-
-    @staticmethod
-    def get_content_snippet(obj: Post) -> str:
-        return (obj.content or "")[:200]
-
-    def get_image_url(self, obj: Post) -> Optional[str]:
-        return self._first_image_url(obj)
-
-    def get_image_urls(self, obj: Post) -> List[str]:
-        return self._all_image_urls(obj)
 
     def get_author(self, obj: Post):
         uid = id_to_public(obj.author_id) if obj.author_id is not None else None
         return {"user_id": uid, "nickname": ""}
 
+    def get_image_url(self, obj: Post) -> Optional[str]:
+        return self._first_image_url(obj)
+
+    def get_images(self, obj: Post) -> List[str]:
+        return self._all_image_urls(obj)
+
     @staticmethod
     def get_is_liked_by_me(obj: Post) -> bool:
-        # annotate나 setattr로 붙인 필드 모두 대응
         if hasattr(obj, "is_liked_by_me"):
             return bool(getattr(obj, "is_liked_by_me"))
         return bool(getattr(obj, "_is_liked_by_me", False))
 
 
-class PostDetailOut(PostListItemCommunityOut):
-    content = serializers.CharField()
+# 과거 이름을 그대로 유지하되, 이제는 "풀 버전"을 상속만 함.
+class PostListItemMainOut(PostListItemFullOut):
+    pass
 
-    class Meta(PostListItemCommunityOut.Meta):
-        fields = PostListItemCommunityOut.Meta.fields + ("content",)
+
+class PostListItemCommunityOut(PostListItemFullOut):
+    pass
+
+
+class PostDetailOut(PostListItemCommunityOut):
+    """
+    상세도 목록과 동일한 풍부한 필드를 유지.
+    (별도 필드 추가가 없으므로 그대로 상속)
+    """
+    pass
 
 
 class PostDetailResponseOut(serializers.Serializer):
