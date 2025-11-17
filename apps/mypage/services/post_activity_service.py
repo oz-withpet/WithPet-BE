@@ -3,7 +3,6 @@ from django.db.models import QuerySet, Q
 from django.core.paginator import Paginator, EmptyPage
 from rest_framework.exceptions import ValidationError
 from apps.community.reports.models import Report
-from apps.community.common.reports import reason_code_to_label
 
 # 커서 방식 util 재사용 (protected 멤버 접근 경고 무시 가능)
 from apps.community.posts.services.listing_main import (
@@ -123,8 +122,4 @@ class PostActivityService:
         qs: QuerySet[Report] = self.repo.get_my_reported_items(user_id)
         result = self._apply_pagination(qs, params)
 
-        # Report 객체 → Serializer 처리용으로 reason_label 추가
-        for report in result["items"]:
-            # report.reason 은 코드이므로 레이블로 변환
-            report.reason_label = reason_code_to_label(report.reason)
         return result
