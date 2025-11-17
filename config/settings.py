@@ -19,9 +19,6 @@ from corsheaders.defaults import default_headers
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-sys.path.insert(0, str(BASE_DIR / 'apps'))
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -60,7 +57,7 @@ INSTALLED_APPS = [
     "apps.community.reports.apps.ReportsConfig",
     'django.contrib.postgres',
     'django_filters',
-    'maps',
+    'apps.maps',
 ]
 
 MIDDLEWARE = [
@@ -171,15 +168,22 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'oz-withpet API',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
     'SERVERS': [
         {'url': 'https://oz-withpet.kro.kr', 'description': 'for test'},
+    ],
+
+    # ✅ JWT 토큰 Authorize 버튼 추가
+    'SECURITY': [
+        {'BearerAuth': []},
     ],
     'COMPONENTS': {
         'securitySchemes': {
             'BearerAuth': {
                 'type': 'http',
                 'scheme': 'bearer',
-                'bearerFormat': 'JWT'
+                'bearerFormat': 'JWT',
+                'description': 'JWT 토큰을 아래 형식으로 입력하세요: \n\n`Bearer <access_token>`',
             }
         }
     },
@@ -194,6 +198,13 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_HEADERS = list(default_headers) + ['authorization']
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -206,6 +217,12 @@ CACHES = {
         "TIMEOUT": 60 * 15,  # 기본 TTL 15분
     }
 }
+
+
+#테스트용 = 실제로 메일이 안 가고, 터미널에 인증 코드가 찍혀서 테스트 가능
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# 기본 발신자 이메일
+DEFAULT_FROM_EMAIL = "no-reply@withpet.com"
 
 import sentry_sdk
 
