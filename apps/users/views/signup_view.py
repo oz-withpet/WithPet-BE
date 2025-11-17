@@ -65,7 +65,7 @@ class SignupAPIView(APIView):
 
     def post(self, request):
         email = request.data.get('email')
-        code = request.data.get('verification_code')
+        code = request.data.get('code')
 
         if not email or not code:
             return Response({'detail': '이메일과 인증코드를 모두 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)

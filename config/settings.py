@@ -206,3 +206,7 @@ SPECTACULAR_SETTINGS = {
         }
     },
 }
+#테스트용 = 실제로 메일이 안 가고, 터미널에 인증 코드가 찍혀서 테스트 가능
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# 기본 발신자 이메일
+DEFAULT_FROM_EMAIL = "no-reply@withpet.com"
