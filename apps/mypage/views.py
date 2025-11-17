@@ -161,7 +161,11 @@ class MyReportsView(APIView):
         "page_size": result.get('page_size', 20),
         "total": result.get('total'),
       }, status=status.HTTP_200_OK)
-    except Exception:
+    except Exception as e:
+      import traceback
+      print(f"!!! MYPAGE REPORTS ERROR: {e}")
+      traceback.print_exc()
+
       return Response(ApiErrorWrapper(code="SERVER_ERROR", message="신고 목록 조회 실패").to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
