@@ -27,13 +27,6 @@ class StoreListAPIView(APIView):
         ordering = request.query_params.get('ordering', 'store_name')
         queryset = queryset.order_by(ordering)
 
-        paginator = PageNumberPagination()
-        paginator.page_size = int(request.query_params.get('page_size', 20))
-
-        page = paginator.paginate_queryset(queryset, request)
-        if page is not None:
-            serializer = StoreListSerializer(page, many=True)
-            return paginator.get_paginated_response(serializer.data)
 
         serializer = StoreListSerializer(queryset, many=True)
         return Response({
