@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Optional, Dict
-import binascii
 import hashlib
 
 from rest_framework.response import Response
@@ -12,7 +11,7 @@ from rest_framework.exceptions import ValidationError, NotFound
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostDetailOut, CommentsBlockOut
-from apps.community.common import id_from_path_param, preview_comments
+from apps.community.common import preview_comments
 
 
 def _parse_params(qp) -> tuple[Optional[str], int, Optional[str]]:
@@ -67,14 +66,8 @@ def _get_post_or_404(post_int_id: int) -> Post:
     return post
 
 
-def get_post_detail(request, post_id: str):
-    # 👉 변경: 숫자("2") 또는 base64("Mg")를 모두 내부 정수 PK로 변환
-    try:
-        internal_id = id_from_path_param(post_id)
-    except ValidationError as e:
-        # 숫자/문자 모두 실패 시, 메시지를 사용자 친화적으로 유지
-        raise ValidationError({"post_id": "유효하지 않은 ID입니다. 숫자 또는 base64 문자열을 사용하세요."}) from e
-
+def get_post_detail(request, post_id: int):
+    internal_id = int(post_id)
     post = _get_post_or_404(internal_id)
 
     include, limit, after = _parse_params(request.query_params)
@@ -83,11 +76,10 @@ def get_post_detail(request, post_id: str):
     if include == "comments":
         after_int: Optional[int] = None
         if after:
-            # 댓글 프리뷰 커서는 기존 스펙대로 base64만 허용 (변경 없음)
             try:
-                after_int = id_from_path_param(after)
-            except (ValueError, TypeError, binascii.Error):
-                raise ValidationError({"comments_after": "유효하지 않은 base64 ID입니다."})
+                after_int = int(after)
+            except (ValueError, TypeError):
+                raise ValidationError({"comments_after": "유효하지 않은 정수 ID입니다."})
         preview = preview_comments(post_id=post.id, limit=limit, after_id=after_int)
 
     etag_val = _make_etag_detail(post, include, limit, after, preview)

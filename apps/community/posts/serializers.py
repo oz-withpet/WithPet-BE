@@ -5,7 +5,7 @@ from typing import Optional, List
 
 from rest_framework import serializers
 from apps.community.comments.serializers import CommentsBlockOut
-from apps.community.common import Base64IDField, CATEGORY_KOR_ALLOWED, id_to_public
+from apps.community.common import CATEGORY_KOR_ALLOWED
 from .models import Post
 
 
@@ -38,9 +38,7 @@ class PostUpdateIn(serializers.Serializer):
     content = serializers.CharField(min_length=1, max_length=20000, required=False, allow_null=True)
     category = serializers.ChoiceField(choices=CATEGORY_KOR_ALLOWED, required=False, allow_null=True)
     image_delete = serializers.BooleanField(required=False, allow_null=True)
-    # ⚠️ multipart로 넘어온 추가 이미지들은 서비스에서 request.FILES.getlist("images")로 처리
     image = serializers.ImageField(required=False, allow_null=True, write_only=True)  # 하위호환
-    # 선택: 개별 삭제용 이미지 id 리스트(서비스에서 사용)
     image_ids_delete = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,
@@ -114,7 +112,7 @@ class PostListItemFullOut(serializers.ModelSerializer, _ImageURLMixin):
     목록에서도 상세와 거의 동일한 풍부한 정보 제공:
     - 기본 필드 + content + 이미지 배열 + 좋아요 여부
     """
-    id = Base64IDField(source="pk", read_only=True)
+    id = serializers.IntegerField(source="pk", read_only=True)
     category = serializers.CharField(source="category.name", allow_null=True)
     author = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()     # 대표(첫 장)
@@ -133,7 +131,7 @@ class PostListItemFullOut(serializers.ModelSerializer, _ImageURLMixin):
         )
 
     def get_author(self, obj: Post):
-        uid = id_to_public(obj.author_id) if obj.author_id is not None else None
+        uid = obj.author_id
         return {"user_id": uid, "nickname": ""}
 
     def get_image_url(self, obj: Post) -> Optional[str]:

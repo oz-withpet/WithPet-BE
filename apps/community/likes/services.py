@@ -1,5 +1,5 @@
 from __future__ import annotations
-import binascii
+
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models import F
@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from rest_framework import status as http_status
 from rest_framework.exceptions import ValidationError
 
-from apps.community.common import id_from_path_param
 from apps.community.posts.models import Post
 from .models import Like
 
@@ -23,15 +22,15 @@ def _require_login(request):
     return None
 
 
-def _decode_post_id_or_400(post_b64: str) -> int:
+def _parse_post_id_or_400(raw_post_id) -> int:
     try:
-        return id_from_path_param(post_b64)
-    except (ValueError, binascii.Error):
-        raise ValidationError({"post_id": "유효하지 않은 base64 ID입니다."})
+        return int(raw_post_id)
+    except (ValueError, TypeError):
+        raise ValidationError({"post_id": "유효하지 않은 정수 ID입니다."})
 
 
-def status(request, post_id: str) -> Response:
-    pid = _decode_post_id_or_400(post_id)
+def status(request, post_id: int) -> Response:
+    pid = _parse_post_id_or_400(post_id)
     post = get_object_or_404(Post, id=pid, is_deleted=False)
 
     is_liked = False
@@ -39,7 +38,9 @@ def status(request, post_id: str) -> Response:
     if user and user.is_authenticated:
         ct = ContentType.objects.get_for_model(Post)
         is_liked = Like.objects.filter(
-            user_id=user.id, content_type=ct, object_id=pid
+            user_id=user.id,
+            content_type=ct,
+            object_id=pid,
         ).exists()
 
     return Response(
@@ -48,12 +49,12 @@ def status(request, post_id: str) -> Response:
     )
 
 
-def on(request, post_id: str) -> Response:
+def on(request, post_id: int) -> Response:
     r = _require_login(request)
     if r:
         return r
 
-    pid = _decode_post_id_or_400(post_id)
+    pid = _parse_post_id_or_400(post_id)
     get_object_or_404(Post, id=pid, is_deleted=False)
 
     user_id = request.user.id
@@ -61,22 +62,27 @@ def on(request, post_id: str) -> Response:
 
     with transaction.atomic():
         _, created = Like.objects.get_or_create(
-            user_id=user_id, content_type=ct, object_id=pid
+            user_id=user_id,
+            content_type=ct,
+            object_id=pid,
         )
         if created:
             Post.objects.filter(id=pid).update(like_count=F("like_count") + 1)
 
         current = Post.objects.only("like_count").get(id=pid).like_count
 
-    return Response({"is_liked": True, "like_count": current}, status=http_status.HTTP_200_OK)
+    return Response(
+        {"is_liked": True, "like_count": current},
+        status=http_status.HTTP_200_OK,
+    )
 
 
-def off(request, post_id: str) -> Response:
+def off(request, post_id: int) -> Response:
     r = _require_login(request)
     if r:
         return r
 
-    pid = _decode_post_id_or_400(post_id)
+    pid = _parse_post_id_or_400(post_id)
     get_object_or_404(Post, id=pid, is_deleted=False)
 
     user_id = request.user.id
@@ -84,11 +90,16 @@ def off(request, post_id: str) -> Response:
 
     with transaction.atomic():
         deleted, _ = Like.objects.filter(
-            user_id=user_id, content_type=ct, object_id=pid
+            user_id=user_id,
+            content_type=ct,
+            object_id=pid,
         ).delete()
         if deleted:
             Post.objects.filter(id=pid).update(like_count=F("like_count") - 1)
 
         current = Post.objects.only("like_count").get(id=pid).like_count
 
-    return Response({"is_liked": False, "like_count": current}, status=http_status.HTTP_200_OK)
+    return Response(
+        {"is_liked": False, "like_count": current},
+        status=http_status.HTTP_200_OK,
+    )

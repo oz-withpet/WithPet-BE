@@ -6,7 +6,6 @@ from rest_framework.exceptions import ValidationError
 
 from apps.community.posts.models import Post, PostCategory, PostImage
 from apps.community.posts.serializers import PostCreateIn
-from apps.community.common.id_codec import id_to_public
 
 MAX_IMAGES = 5
 
@@ -47,6 +46,6 @@ def create_post(request):
             ]
             PostImage.objects.bulk_create(objs, batch_size=50)
 
-    pub_id = id_to_public(post.id)
+    pub_id = post.id
     headers = {"Location": f"/posts/{pub_id}"}
     return Response({"post_id": pub_id}, status=status.HTTP_201_CREATED, headers=headers)

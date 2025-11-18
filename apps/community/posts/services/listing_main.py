@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 from apps.community.posts.models import Post
 from apps.community.posts.serializers import PostListItemMainOut
-from apps.community.likes.models import Like  # ✅ is_liked_by_me 주입에 필요
+from apps.community.likes.models import Like
 
 FORBIDDEN_ON_MAIN = {"page", "page_size", "category", "sort", "q", "search_in"}
 
@@ -90,12 +90,11 @@ def main_list(request):
     qs: models.QuerySet = (
         Post.objects
         .select_related("category")
-        .prefetch_related("images")     # ✅ 여러 이미지 N+1 방지
+        .prefetch_related("images")
         .filter(is_deleted=False)
         .order_by("-created_at", "-id")
     )
 
-    # ✅ 로그인 사용자라면 is_liked_by_me 주입
     user = getattr(request, "user", None)
     if user and getattr(user, "is_authenticated", False):
         ct_post = ContentType.objects.get_for_model(Post)
@@ -124,13 +123,11 @@ def main_list(request):
         tail = page[-1]
         next_after = _encode_cursor(tail.created_at, tail.id)
 
-    # ✅ 이제 PostListItemMainOut == "풍부한 버전"(PostListItemFullOut 상속)
     ser = PostListItemMainOut(page, many=True, context={"request": request})
     data = {"posts": ser.data, "has_next": has_next, "next_after": next_after}
 
     etag_val = _make_etag_main(limit, after_token, page)
 
-    # 조건부 요청 처리
     if request.META.get("HTTP_IF_NONE_MATCH") == etag_val:
         return Response(status=status.HTTP_304_NOT_MODIFIED)
 

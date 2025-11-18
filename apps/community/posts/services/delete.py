@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 
-from apps.community.common import id_from_path_param
 from apps.community.posts.models import Post
 
 
@@ -16,8 +15,8 @@ def _alive_queryset():
         return Post.objects.filter(is_deleted=False)
 
 
-def delete_post(request, post_id: str) -> Response:
-    pk = id_from_path_param(post_id)
+def delete_post(request, post_id: int) -> Response:
+    pk = int(post_id)
 
     try:
         post = _alive_queryset().only("id", "author_id", "is_deleted").get(pk=pk)

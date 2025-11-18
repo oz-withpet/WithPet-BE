@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.conf import settings
-from apps.community.common import CATEGORY_KOR_ALLOWED, id_to_public
+from apps.community.common import CATEGORY_KOR_ALLOWED
 
 class PostQuerySet(models.QuerySet):
     def alive(self):
@@ -51,10 +51,6 @@ class Post(models.Model):
             models.Index(fields=["-like_count"]),
             models.Index(fields=["category", "-created_at"]),
         ]
-
-    @property
-    def public_id(self) -> str:
-        return id_to_public(self.id)
 
     def __str__(self):
         return f"[{self.id}] {self.title}"

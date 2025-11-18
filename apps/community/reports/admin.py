@@ -5,7 +5,7 @@ from django.db import IntegrityError  # NEW
 
 from .models import Report, REPORT_REASON_CHOICES
 from apps.community.posts.models import Post  # NEW: 신고 대상은 Post만
-from apps.community.common import validate_report, id_to_public  # NEW
+from apps.community.common import validate_report  # NEW
 
 class ReportAdminForm(forms.ModelForm):
     post = forms.ModelChoiceField(
@@ -54,7 +54,7 @@ class ReportAdmin(admin.ModelAdmin):
 
     def post_link(self, obj: Report):
         try:
-            pub = id_to_public(obj.object_id)
+            pub = int(obj.object_id)
         except Exception:
             pub = "?"
         return f"Post #{obj.object_id} (public_id={pub})"

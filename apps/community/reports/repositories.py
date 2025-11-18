@@ -41,7 +41,7 @@ class ReportRepository:
         post_model = resolve_post_model()
         try:
             return post_model.objects.get(pk=pk)
-        except post_model.DoesNotExist:  # type: ignore[attr-defined]
+        except post_model.DoesNotExist:
             raise TargetNotFoundError()
 
     @staticmethod
@@ -56,6 +56,5 @@ class ReportRepository:
                 detail=detail or "",
             )
         except IntegrityError:
-            # models.UniqueConstraint("user", "content_type", "object_id") 위반
             raise DuplicateReportError()
         return report
