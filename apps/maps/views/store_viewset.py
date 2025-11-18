@@ -81,7 +81,7 @@ class StoreListAPIView(APIView):
         stores_with_distance.sort(key=lambda x: x.distance)
 
         paginator = PageNumberPagination()
-        paginator.page_size = int(request.data.get('page_size', 20))
+        paginator.page_size = int(request.data.get('page_size', 0))
 
         page = paginator.paginate_queryset(stores_with_distance, request)
         if page is not None:
