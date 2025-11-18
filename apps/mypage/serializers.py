@@ -3,14 +3,13 @@ from django.contrib.auth import get_user_model
 from apps.community.reports.models import Report
 from apps.community.posts.serializers import PostListItemCommunityOut
 from apps.maps.serializers.store import StoreSerializer
-from apps.community.common import Base64IDField
 from apps.maps.models.store import LikePlace
 
 User = get_user_model()
 
 # 프로필 조회
 class MyProfileSerializer(serializers.ModelSerializer):
-  user_id = Base64IDField(source="pk", read_only=True)
+  user_id = serializers.IntegerField(source="pk", read_only=True)
   gender = serializers.CharField(allow_null=True)
 
   # 타입 변환
@@ -44,7 +43,7 @@ class WithdrawSerializer(serializers.Serializer):
 
 # 관심 장소
 class LikedStoreOut(serializers.ModelSerializer):
-  like_place_id = Base64IDField(source="pk", read_only=True)
+  like_place_id = serializers.IntegerField(source="pk", read_only=True)
   store = StoreSerializer(read_only=True)
 
   class Meta:
@@ -53,7 +52,7 @@ class LikedStoreOut(serializers.ModelSerializer):
 
 # 신고 게시글
 class MyReportPostOut(serializers.ModelSerializer):
-  report_id = Base64IDField(source="pk", read_only=True)
+  report_id = serializers.IntegerField(source="pk", read_only=True)
   post = PostListItemCommunityOut(source='target', read_only=True)
   reason = serializers.CharField(source='reason_label', read_only=True)
 
