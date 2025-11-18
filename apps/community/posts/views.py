@@ -30,11 +30,11 @@ class PostDetailView(APIView):
             return [IsAuthenticated()]
         return [AllowAny()]
 
-    def get(self, request, post_id: str, *args, **kwargs):
+    def get(self, request, post_id: int, *args, **kwargs):
         return get_post_detail(request, post_id)
 
-    def patch(self, request, post_id: str, *args, **kwargs):
+    def patch(self, request, post_id: int, *args, **kwargs):
         return patch_post(request, post_id)
 
-    def delete(self, request, post_id: str, *args, **kwargs):
+    def delete(self, request, post_id: int, *args, **kwargs):
         return delete_post(request, post_id)
