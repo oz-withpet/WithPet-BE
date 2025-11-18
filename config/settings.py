@@ -194,6 +194,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://oz-withpet.kro.kr",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://with-petfe.vercel.app"
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + ['authorization']
