@@ -1,12 +1,12 @@
+# apps/community/comments/services.py
 from __future__ import annotations
-import binascii
+
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError, PermissionDenied
 
-from apps.community.common import id_from_path_param, id_to_public
 from apps.community.posts.models import Post
 from .models import Comment
 from .serializers import CommentCreateIn, CommentUpdateIn
@@ -22,7 +22,10 @@ def _require_login(request):
     return None
 
 
-def create(request, post_id: str):
+def create(request, post_id: int):
+    """
+    댓글 생성: post_id는 URL에서 <int:post_id>로 들어오는 정수 PK
+    """
     r = _require_login(request)
     if r:
         return r
@@ -31,12 +34,10 @@ def create(request, post_id: str):
     ser = CommentCreateIn(data=request.data)
     ser.is_valid(raise_exception=True)
 
-    # post_id(base64) → int
-    try:
-        internal_pid = id_from_path_param(post_id)
-    except (ValueError, binascii.Error):
-        raise ValidationError({"post_id": "유효하지 않은 base64 ID입니다."})
+    # post_id는 이미 int이므로 바로 사용
+    internal_pid = int(post_id)
 
+    # 삭제되지 않은 게시글인지 확인
     get_object_or_404(Post, id=internal_pid, is_deleted=False)
 
     with transaction.atomic():
@@ -46,10 +47,13 @@ def create(request, post_id: str):
             content=ser.validated_data["content"],
         )
 
-    return Response({"comment_id": id_to_public(c.id)}, status=status.HTTP_201_CREATED)
+    return Response({"comment_id": int(c.id)}, status=status.HTTP_201_CREATED)
 
 
-def update(request, comment_id: str):
+def update(request, comment_id: int):
+    """
+    댓글 수정: comment_id도 <int:comment_id>로 들어오는 정수 PK
+    """
     r = _require_login(request)
     if r:
         return r
@@ -57,10 +61,11 @@ def update(request, comment_id: str):
     ser = CommentUpdateIn(data=request.data)
     ser.is_valid(raise_exception=True)
 
+    # 방어적으로 캐스팅 (내부에서 str로 호출될 가능성 대비)
     try:
-        cid = id_from_path_param(comment_id)
-    except (ValueError, binascii.Error):
-        raise ValidationError({"comment_id": "유효하지 않은 base64 ID입니다."})
+        cid = int(comment_id)
+    except (ValueError, TypeError):
+        raise ValidationError({"comment_id": "유효하지 않은 정수 ID입니다."})
 
     comment = get_object_or_404(Comment, id=cid, is_deleted=False)
 
@@ -72,20 +77,26 @@ def update(request, comment_id: str):
     comment.save(update_fields=["content", "updated_at"])  # auto_now 갱신
 
     return Response(
-        {"comment_id": id_to_public(comment.id), "updated_at": comment.updated_at},
+        {
+            "comment_id": int(comment.id),
+            "updated_at": comment.updated_at,  # DRF가 DateTimeField 알아서 직렬화
+        },
         status=status.HTTP_200_OK,
     )
 
 
-def delete(request, comment_id: str):
+def delete(request, comment_id: int):
+    """
+    댓글 삭제: comment_id 정수 PK
+    """
     r = _require_login(request)
     if r:
         return r
 
     try:
-        cid = id_from_path_param(comment_id)
-    except (ValueError, binascii.Error):
-        raise ValidationError({"comment_id": "유효하지 않은 base64 ID입니다."})
+        cid = int(comment_id)
+    except (ValueError, TypeError):
+        raise ValidationError({"comment_id": "유효하지 않은 정수 ID입니다."})
 
     comment = get_object_or_404(Comment, id=cid)
     user = request.user
