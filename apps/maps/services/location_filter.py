@@ -38,7 +38,7 @@ class LocationService:
         if province_code is None:
             return cls._districts
 
-# province_code 필터링
+    # province_code 필터링
         return [
             district for district in cls._districts
             if district['province_code'] == province_code
@@ -53,14 +53,14 @@ class LocationService:
 
         result = cls._neighborhoods
 
-# province_code 필터링
+    # province_code 필터링
         if province_code is not None:
             result = [
                 neighborhood for neighborhood in result
                 if neighborhood['province_code'] == province_code
             ]
 
-# district_code 필터링
+    # district_code 필터링
         if district_code is not None:
             result = [
                 neighborhood for neighborhood in result

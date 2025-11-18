@@ -1,4 +1,8 @@
-from .store_viewset import StoreViewSet
+from .store_viewset import (
+    StoreListAPIView,
+    StoreDetailAPIView,
+    CategoryListAPIView
+)
 from .like_viewset import LikeViewSet
 from .location_viewset import (
     ProvinceListAPIView,
@@ -9,7 +13,9 @@ from .location_viewset import (
 )
 
 __all__ = [
-    'StoreViewSet',
+    'StoreListAPIView',
+    'StoreDetailAPIView',
+    'CategoryListAPIView',
     'LikeViewSet',
     'ProvinceListAPIView',
     'DistrictListAPIView',
