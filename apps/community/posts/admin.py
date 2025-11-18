@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.core.exceptions import SuspiciousFileOperation
-from django.utils import timezone  # NEW: 소프트 삭제/복구 액션에 사용
+from django.utils import timezone
 
 from .models import Post, PostCategory, PostImage
 

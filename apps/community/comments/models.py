@@ -1,11 +1,25 @@
 from django.db import models
 from django.conf import settings
-from apps.community.common import id_to_public
 
 class Comment(models.Model):
-    post = models.ForeignKey("posts.Post", on_delete=models.CASCADE, related_name="comments", db_index=True)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="comments")
-    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies")
+    post = models.ForeignKey(
+        "posts.Post",
+        on_delete=models.CASCADE,
+        related_name="comments",
+        db_index=True,
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="comments",
+    )
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="replies",
+    )
 
     content = models.TextField()
 
@@ -21,8 +35,8 @@ class Comment(models.Model):
         ]
 
     @property
-    def public_id(self) -> str:
-        return id_to_public(self.id)
+    def public_id(self) -> int:
+        return self.id
 
     def __str__(self):
         return f"Comment({self.id}) on Post({self.post_id})"

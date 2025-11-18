@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Q
 from .models import Like
-from apps.community.common import id_to_public, id_from_public
 
 
 @admin.register(Like)
@@ -44,7 +43,7 @@ class LikeAdmin(admin.ModelAdmin):
 
         else:
             try:
-                pk_from_b64 = id_from_public(term)
+                pk_from_b64 = int(term)
                 extra_q = queryset.filter(object_id=pk_from_b64)
             except Exception:
                 pass
@@ -58,7 +57,7 @@ class LikeAdmin(admin.ModelAdmin):
     def target_str(self, obj):
         base = f"{obj.content_type.app_label}.{obj.content_type.model}:{obj.object_id}"
         if obj.content_type.model in ("post", "comment"):
-            return f"{base} (b64={id_to_public(obj.object_id)})"
+            return f"{base} (b64={int(obj.object_id)})"
         return base
 
     target_str.short_description = "대상"
