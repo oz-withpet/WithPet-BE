@@ -6,6 +6,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from apps.users.utils.email_service import verify_email_code
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 class VerifyEmailCodeAPIView(APIView):
     @extend_schema(

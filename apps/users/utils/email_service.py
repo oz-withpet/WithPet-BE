@@ -8,8 +8,9 @@ User = get_user_model()
 
 
 def send_verification_email(email):
-    code = str(random.randint(100000, 999999))
+    email = email.lower()
 
+    code = str(random.randint(100000, 999999))
     cache_key = f"email_code:{email}"
 
     cache.set(cache_key, code, timeout=300)
@@ -20,20 +21,22 @@ def send_verification_email(email):
     send_mail(
         subject,
         message,
-        settings.DEFAULT_FROM_EMAIL,   # Gmail로 설정된 발신자
+        settings.DEFAULT_FROM_EMAIL,
         [email],
         fail_silently=False,
     )
 
 
 def verify_email_code(email, code):
+    email = email.lower()
+
     cache_key = f"email_code:{email}"
     cached_code = cache.get(cache_key)
 
     if cached_code is None:
         return False
 
-    if cached_code != code:
+    if str(cached_code) != str(code):
         return False
 
     cache.delete(cache_key)
