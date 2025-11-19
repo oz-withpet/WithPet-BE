@@ -13,6 +13,7 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -33,6 +34,8 @@ class CustomUser(AbstractUser):
         max_length=10,
         choices=[(tag.value, tag.name.capitalize()) for tag in PetTypeEnum],
     )
+
+    is_email_verified = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["nickname", "gender", "pet_type"]

@@ -31,7 +31,7 @@ DEBUG = True
 AUTH_USER_MODEL = "users.CustomUser"
 
 COMMUNITY_POST_MODEL = "posts.Post"
-#로컬서버에서 접근허용 테스트용
+
 ALLOWED_HOSTS = ['oz-withpet.kro.kr', '127.0.0.1', 'localhost']
 
 MEDIA_URL = "/media/"
@@ -223,9 +223,21 @@ CACHES = {
 
 
 #테스트용 = 실제로 메일이 안 가고, 터미널에 인증 코드가 찍혀서 테스트 가능
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+#EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # 기본 발신자 이메일
-DEFAULT_FROM_EMAIL = "no-reply@withpet.com"
+#DEFAULT_FROM_EMAIL = "no-reply@withpet.com"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = "email-smtp.ap-northeast-2.amazonaws.com"   # SES SMTP 엔드포인트
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = "AKIAYHB3N5LLKNHDXLNT"        # SMTP Username
+EMAIL_HOST_PASSWORD = "BHklUYtM74m/+dS89aA3MGqdZA0+kE1R7m2B750TS9Sx"    # SMTP Password
+
+DEFAULT_FROM_EMAIL = "jisun131200@gmail.com"
+SERVER_EMAIL = "jisun131200@gmail.com"
 
 import sentry_sdk
 

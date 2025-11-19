@@ -17,7 +17,7 @@ class MyProfileSerializer(serializers.ModelSerializer):
 
   class Meta:
     model = User
-    fields = ('user_id', 'email', 'nickname', 'username', 'gender', 'has_pet', 'created_at')
+    fields = ('user_id', 'email', 'nickname', 'username', 'gender', 'pet_type', 'is_email_verified', 'created_at')
     read_only_fields = ('email', 'username', 'created_at')
 
   @staticmethod

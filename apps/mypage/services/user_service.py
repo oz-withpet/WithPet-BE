@@ -29,7 +29,8 @@ class UserService:
             "nickname": user.nickname,
             "username": user.first_name,
             "gender": user.gender,
-            "has_pet": bool(user.pet_type),
+            "pet_type": user.pet_type,
+            "is_email_verified": user.is_email_verified,
             "created_at": user.date_joined.isoformat(),
         }
 
