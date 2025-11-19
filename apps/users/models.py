@@ -35,7 +35,15 @@ class CustomUser(AbstractUser):
         choices=[(tag.value, tag.name.capitalize()) for tag in PetTypeEnum],
     )
 
-    is_email_verified = models.BooleanField(default=False)
+    # --------------------------------
+    # 이메일 인증 미사용으로 인한 조치 시작 (default=False) -> (default=True)
+    # --------------------------------
+
+    is_email_verified = models.BooleanField(default=True)
+
+    # --------------------------------
+    # 이메일 인증 미사용으로 인한 조치 끝
+    # --------------------------------
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["nickname", "gender", "pet_type"]

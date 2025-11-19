@@ -5,9 +5,6 @@ from apps.users.views.logout_view import LogoutAPIView
 from apps.users.views.token_refresh_view import CustomTokenRefreshView
 from apps.users.views.nickname_check_view import NicknameCheckAPIView
 from apps.users.views.email_check_view import EmailCheckAPIView
-from apps.users.views.send_email_code_view import SendEmailCodeAPIView
-from apps.users.views.verify_email_code_view import VerifyEmailCodeAPIView
-from .views import login_view, test_email
 
 urlpatterns = [
     # 🔐 인증 관련
@@ -18,11 +15,5 @@ urlpatterns = [
 
     # ✅ 검증 관련
     path("validation/nickname/", NicknameCheckAPIView.as_view(), name="validation-nickname"),
-    path("validation/email/", EmailCheckAPIView.as_view(), name="validation-email"),
-
-    # ✉️ 이메일 인증 관련
-    path("email/code/send/", SendEmailCodeAPIView.as_view(), name="email-code-send"),
-    path("email/code/verify/", VerifyEmailCodeAPIView.as_view(), name="email-code-verify"),
-
-    path('test-email/', test_email, name='test_email')
+    path("validation/email/", EmailCheckAPIView.as_view(), name="validation-email")
 ]

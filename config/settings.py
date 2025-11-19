@@ -227,17 +227,26 @@ CACHES = {
 # 기본 발신자 이메일
 #DEFAULT_FROM_EMAIL = "no-reply@withpet.com"
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# --------------------------------
+# 이메일 인증 미사용으로 인한 조치 시작
+# --------------------------------
 
-EMAIL_HOST = "email-smtp.ap-northeast-2.amazonaws.com"   # SES SMTP 엔드포인트
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
 
-EMAIL_HOST_USER = "AKIAYHB3N5LLKNHDXLNT"        # SMTP Username
-EMAIL_HOST_PASSWORD = "BHklUYtM74m/+dS89aA3MGqdZA0+kE1R7m2B750TS9Sx"    # SMTP Password
+# EMAIL_HOST = "email-smtp.ap-northeast-2.amazonaws.com"   # SES SMTP 엔드포인트
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+#
+# EMAIL_HOST_USER = "AKIAYHB3N5LLKNHDXLNT"        # SMTP Username
+# EMAIL_HOST_PASSWORD = "BHklUYtM74m/+dS89aA3MGqdZA0+kE1R7m2B750TS9Sx"    # SMTP Password
+#
+# DEFAULT_FROM_EMAIL = "jisun131200@gmail.com"
+# SERVER_EMAIL = "jisun131200@gmail.com"
 
-DEFAULT_FROM_EMAIL = "jisun131200@gmail.com"
-SERVER_EMAIL = "jisun131200@gmail.com"
+# --------------------------------
+# 이메일 인증 미사용으로 인한 조치 끝
+# --------------------------------
+
 
 import sentry_sdk
 
