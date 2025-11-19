@@ -33,6 +33,19 @@ class VerifyEmailCodeAPIView(APIView):
 
         verified = verify_email_code(email, code)
         if verified:
-            return Response({"verified": True, "message": "이메일 인증이 완료되었습니다."})
-        return Response({"verified": False, "message": "인증번호가 일치하지 않습니다."})
+            try:
+                user = User.objects.get(email=email)
+                user.is_email_verified = True
+                user.save(update_fields=["is_email_verified"])
+            except User.DoesNotExist:
+                pass
 
+            return Response(
+                {"verified": True, "message": "이메일 인증이 완료되었습니다."},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {"verified": False, "message": "인증번호가 일치하지 않습니다."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
