@@ -247,6 +247,13 @@ EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
 # 이메일 인증 미사용으로 인한 조치 끝
 # --------------------------------
 
+# SameSite 정책 추가
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 
 import sentry_sdk
 
