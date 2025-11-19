@@ -14,16 +14,16 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             "access": access_token
         }
 
-        # Access Token 쿠키 설정 제거 ( 프론트엔드 메모리로 유도 )
-        # if access_token:
-        #     response.set_cookie(
-        #         key="access_token",
-        #         value=access_token,
-        #         httponly=True,
-        #         secure=True,
-        #         samesite="None",
-        #         max_age=60 * 60,
-        #     )
+
+        if access_token:
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                httponly=True,
+                secure=True,
+                samesite="None",
+                max_age=60 * 60,
+            )
 
         if refresh_token:
             response.set_cookie(

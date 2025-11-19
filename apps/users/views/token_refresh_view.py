@@ -27,52 +27,55 @@ REFRESH_COOKIE_MAX_AGE = _lifetime_seconds(_refresh_lifetime)
 
 
 class CustomTokenRefreshView(TokenRefreshView):
-    def post(self, request, *args, **kwargs):
+  def post(self, request, *args, **kwargs):
 
-        refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
-        if refresh_token:
+    refresh_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
 
-            mutable_data = request.data.copy()
-            mutable_data["refresh"] = refresh_token
-            request._full_data = mutable_data  # DRF 내부에서 읽을 때 사용되기도 함
-            request.data = mutable_data
+    # refresh_token이 쿠키에 있으면 data를 override 해서 serializer에 넣기
+    if refresh_token:
+      # DRF의 Request 객체를 건드리지 않고, 새 data dict를 만든 뒤
+      # super().post()가 사용하는 serializer_context에 override
+      request_data = {"refresh": refresh_token}
+    else:
+      request_data = request.data
 
-        super_response = super().post(request, *args, **kwargs)
+    # super().post()는 serializer로 request.data를 사용하므로
+    # kwargs["data"]로 override 해준다.
+    kwargs["data"] = request_data
 
-        if super_response.status_code != status.HTTP_200_OK:
+    super_response = super().post(request, *args, **kwargs)
 
-            return super_response
+    if super_response.status_code != status.HTTP_200_OK:
+      return super_response
 
-        access = super_response.data.get("access")
-        refresh = super_response.data.get("refresh")
+    access = super_response.data.get("access")
+    refresh = super_response.data.get("refresh")
 
+    final_response = Response({"access": access}, status=super_response.status_code)
 
-        final_response = Response({"access": access}, status=super_response.status_code)
+    if access:
+      final_response.set_cookie(
+        ACCESS_COOKIE_NAME,
+        access,
+        max_age=ACCESS_COOKIE_MAX_AGE,
+        secure=COOKIE_SECURE,
+        httponly=COOKIE_HTTPONLY,
+        samesite=COOKIE_SAMESITE,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+      )
 
+    if refresh:
+      final_response.set_cookie(
+        REFRESH_COOKIE_NAME,
+        refresh,
+        max_age=REFRESH_COOKIE_MAX_AGE,
+        secure=COOKIE_SECURE,
+        httponly=COOKIE_HTTPONLY,
+        samesite=COOKIE_SAMESITE,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+      )
 
-        if access is not None:
-            final_response.set_cookie(
-                ACCESS_COOKIE_NAME,
-                access,
-                max_age=ACCESS_COOKIE_MAX_AGE,
-                secure=COOKIE_SECURE,
-                httponly=COOKIE_HTTPONLY,
-                samesite=COOKIE_SAMESITE,
-                path=COOKIE_PATH,
-                domain=COOKIE_DOMAIN,
-            )
+    return final_response
 
-
-        if refresh is not None:
-            final_response.set_cookie(
-                REFRESH_COOKIE_NAME,
-                refresh,
-                max_age=REFRESH_COOKIE_MAX_AGE,
-                secure=COOKIE_SECURE,
-                httponly=COOKIE_HTTPONLY,
-                samesite=COOKIE_SAMESITE,
-                path=COOKIE_PATH,
-                domain=COOKIE_DOMAIN,
-            )
-
-        return final_response
