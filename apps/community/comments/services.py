@@ -1,8 +1,8 @@
-# apps/community/comments/services.py
 from __future__ import annotations
 
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.db.models import F  # 👈 추가: comment_count +1 / -1 위해
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError, PermissionDenied
@@ -45,6 +45,10 @@ def create(request, post_id: int):
             post_id=internal_pid,
             author=request.user,
             content=ser.validated_data["content"],
+        )
+        # 🔼 댓글 생성 시 comment_count +1
+        Post.objects.filter(id=internal_pid).update(
+            comment_count=F("comment_count") + 1
         )
 
     return Response({"comment_id": int(c.id)}, status=status.HTTP_201_CREATED)
@@ -103,11 +107,20 @@ def delete(request, comment_id: int):
     if comment.author_id != user.id and not user.is_staff:
         raise PermissionDenied(detail={"code": "FORBIDDEN", "message": "권한이 없습니다."})
 
+    # 🔽 삭제 시 comment_count -1 (실제로 처음 삭제될 때만)
     if hasattr(comment, "is_deleted"):
         if not comment.is_deleted:
+            post_id = comment.post_id
             comment.is_deleted = True
             comment.save(update_fields=["is_deleted", "updated_at"])
+            Post.objects.filter(id=post_id).update(
+                comment_count=F("comment_count") - 1
+            )
     else:
+        post_id = comment.post_id
         comment.delete()
+        Post.objects.filter(id=post_id).update(
+            comment_count=F("comment_count") - 1
+        )
 
     return Response(status=status.HTTP_204_NO_CONTENT)
