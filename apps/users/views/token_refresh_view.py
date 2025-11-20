@@ -53,6 +53,9 @@ class CustomTokenRefreshView(TokenRefreshView):
 
     final_response = Response({"access": access}, status=super_response.status_code)
 
+    final_response.delete_cookie(ACCESS_COOKIE_NAME, path="/", domain='.withpet.space')
+    final_response.delete_cookie(REFRESH_COOKIE_NAME, path="/", domain='.withpet.space')
+
     if access:
       final_response.set_cookie(
         ACCESS_COOKIE_NAME,
@@ -62,7 +65,7 @@ class CustomTokenRefreshView(TokenRefreshView):
         httponly=COOKIE_HTTPONLY,
         samesite=COOKIE_SAMESITE,
         path=COOKIE_PATH,
-        domain=COOKIE_DOMAIN,
+        domain='.withpet.space',
       )
 
     if refresh:
@@ -74,7 +77,7 @@ class CustomTokenRefreshView(TokenRefreshView):
         httponly=COOKIE_HTTPONLY,
         samesite=COOKIE_SAMESITE,
         path=COOKIE_PATH,
-        domain=COOKIE_DOMAIN,
+        domain='.withpet.space',
       )
 
     return final_response

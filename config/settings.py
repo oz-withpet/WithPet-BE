@@ -32,7 +32,7 @@ AUTH_USER_MODEL = "users.CustomUser"
 
 COMMUNITY_POST_MODEL = "posts.Post"
 
-ALLOWED_HOSTS = ['oz-withpet.kro.kr', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['api.withpet.space', 'withpet.space', 'www.withpet.space', '127.0.0.1', 'localhost']
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -170,7 +170,7 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
     'SERVERS': [
-        {'url': 'https://oz-withpet.kro.kr', 'description': 'for test'},
+        {'url': 'https://api.withpet.space', 'description': 'for test'},
     ],
 
     # ✅ JWT 토큰 Authorize 버튼 추가
@@ -191,10 +191,10 @@ SPECTACULAR_SETTINGS = {
 
 # swagger editor를 로컬에서 테스트 할 경우 도메인 안전장치
 CORS_ALLOWED_ORIGINS = [
-    "https://oz-withpet.kro.kr",
+    "https://api.withpet.space",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://with-petfe.vercel.app"
+    "https://www.withpet.space"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -248,12 +248,18 @@ EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
 # --------------------------------
 
 # SameSite 정책 추가
-SESSION_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
+# 리다이렉트 오류 방지 추가
+
+APPEND_SLASH = False
+
+# 쿠키 공유 설정 
+SESSION_COOKIE_DOMAIN = '.withpet.space'
 
 import sentry_sdk
 

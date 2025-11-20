@@ -47,7 +47,7 @@ def _make_etag_detail(
         items = preview.get("items") or []
         total_count = int(preview.get("total_count") or 0)
         next_after = preview.get("next_after") or ""
-        last_item_id = items[-1]["id"] if items else ""
+        last_item_id = items[-1].id if items else ""
         comments_key = f"{total_count}:{next_after}:{last_item_id}"
 
     etag_src = f"detail:{post_key}:{include or ''}:{limit}:{after_token or ''}:{comments_key}"
