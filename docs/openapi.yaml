@@ -1,0 +1,2550 @@
+openapi: 3.0.3
+info:
+  title: WithPet Integrated API
+  version: 1.0.0
+  description: |-
+    🐾 **WithPet 서비스 통합 API**
+
+    커뮤니티, 인증, 지역/매장 검색 기능을 통합한 명세입니다.
+    모든 속성명은 **snake_case**로 통일되었습니다.
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://oz-withpet.kro.kr/
+  - url: https://virtserver.swaggerhub.com/pet_api/pet_API/1.0.0
+
+tags:
+  - name: Posts
+  - name: Comments
+  - name: Likes
+  - name: Reports
+  - name: Auth
+    description: 회원가입 및 로그인 관련 API
+  - name: Mypage
+    description: 마이페이지 API
+  - name: Locations
+    description: 지역 정보 조회
+  - name: Categories
+    description: 서비스 카테고리 조회
+  - name: Stores
+    description: 매장 검색
+  - name: Store Likes
+    description: 매장 관심장소 관리
+
+paths:
+  # -----------------------------
+  # 커뮤니티 (사용자 원본 그대로, ID만 base64 문자열 Id64로 통합)
+  # -----------------------------
+  /posts:
+    get:
+      tags: [Posts]
+      summary: Posts list (main or community)
+      description: |
+        - **view=main**: 메인(무한스크롤). `after` 커서 기반, `limit` 사용.
+        - **view=community**: 커뮤니티(페이지네이션). `page`/`page_size`, `category`, `sort`, `q`, `search_in` 사용.
+        - **유효한 조합만 허용**합니다. 예) `view=main`에서 `page`/`page_size`/`category`/`sort`/`q`/`search_in`을 보내거나,
+          `view=community`에서 `after`/`limit`을 보내면 **400 Bad Request**로 응답합니다.
+      parameters:
+        - $ref: '#/components/parameters/View'
+        - $ref: '#/components/parameters/After'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Category'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/SearchIn'
+      responses:
+        '200':
+          description: OK
+          headers:
+            ETag:
+              description: "리소스 버전 태그(옵션). If-None-Match로 조건부 요청 가능."
+              schema:
+                type: string
+            Cache-Control:
+              description: "캐싱 지시자(예: public, max-age=30)"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PostsListMainResponse'
+                  - $ref: '#/components/schemas/PostsListCommunityResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    post:
+      tags: [Posts]
+      summary: Create post (auth)
+      description: |
+        단일 이미지(선택) 첨부 가능. JSON 또는 multipart/form-data 모두 지원.
+        응답에 성공 여부 불린을 포함하지 않습니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/PostCreate'
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location:
+              description: 새 게시글의 고정 URL
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post_id:
+                    $ref: '#/components/schemas/Id64'
+                required:
+                  - post_id
+              example:
+                post_id: "MTAx"
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '415':
+          $ref: '#/components/responses/Error415'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /posts/{post_id}:
+    get:
+      tags: [Posts]
+      summary: Get single post (optional comment preview)
+      description: |
+        `include=comments`로 댓글 프리뷰를 포함할 수 있습니다(커서 기반 `comments_after`, 제한 `comments_limit`).
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+        - $ref: '#/components/parameters/Include'
+        - $ref: '#/components/parameters/CommentsLimit'
+        - $ref: '#/components/parameters/CommentsAfter'
+      responses:
+        '200':
+          description: OK
+          headers:
+            ETag:
+              description: 리소스 버전 태그(옵션). If-None-Match로 조건부 요청 가능.
+              schema:
+                type: string
+            Cache-Control:
+              description: "캐싱 지시자(예: public, max-age=60)"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDetailResponse'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    patch:
+      tags: [Posts]
+      summary: Update post (author only, partial)
+      description: |
+        전달된 필드만 수정됩니다. **모든 필드 nullable 허용**(키 자체도 선택).
+        응답에 성공 여부 불린을 포함하지 않습니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+      requestBody:
+        $ref: '#/components/requestBodies/PostUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post_id:
+                    $ref: '#/components/schemas/Id64'
+                  updated_at:
+                    type: string
+                    format: date-time
+                required:
+                  - post_id
+                  - updated_at
+              example:
+                post_id: "MTAx"
+                updated_at: "2025-10-21T12:34:56Z"
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '415':
+          $ref: '#/components/responses/Error415'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    delete:
+      tags: [Posts]
+      summary: Delete post (author only)
+      description: |
+        소프트 삭제일 수도 있으며, 서버 정책에 따릅니다.
+        성공 시 본문 없는 **204 No Content**를 반환합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /posts/{post_id}/comments:
+    post:
+      tags: [Comments]
+      summary: Create comment (auth)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+              required:
+                - content
+            example:
+              content: "좋은 정보 감사합니다! 주차는 어디에 하면 좋을까요?"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comment_id:
+                    $ref: '#/components/schemas/Id64'
+                required:
+                  - comment_id
+              example:
+                comment_id: "NTUwMQ=="
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /comments/{comment_id}:
+    put:
+      tags: [Comments]
+      summary: Update comment (author only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommentId64'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+              required:
+                - content
+            example:
+              content: "문장을 조금 다듬었습니다!"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comment_id:
+                    $ref: '#/components/schemas/Id64'
+                  updated_at:
+                    type: string
+                    format: date-time
+                required:
+                  - comment_id
+                  - updated_at
+              example:
+                comment_id: "NTUwMQ=="
+                updated_at: "2025-10-21T12:40:00Z"
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    delete:
+      tags: [Comments]
+      summary: Delete comment (author only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommentId64'
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /posts/{post_id}/like:
+    get:
+      tags: [Likes]
+      summary: Get like status
+      description: |
+        비로그인 사용자는 `is_liked: false`로 반환됩니다(좋아요 여부 판단 불가 시 기본값).
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeStatus'
+              example:
+                is_liked: false
+                like_count: 12
+        '404':
+          $ref: '#/components/responses/Error404'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    put:
+      tags: [Likes]
+      summary: Like ON (idempotent)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeStatus'
+              example:
+                is_liked: true
+                like_count: 13
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    delete:
+      tags: [Likes]
+      summary: Like OFF (idempotent)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeStatus'
+              example:
+                is_liked: false
+                like_count: 12
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /posts/{post_id}/report:
+    post:
+      tags: [Reports]
+      summary: Create report (auth)
+      description: |
+        사유가 **'기타'**인 경우 `detail`은 최소 5자 이상이어야 합니다.
+        동일 사용자의 중복 신고는 `409 Conflict`가 발생할 수 있습니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PostId64'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+            examples:
+              standard:
+                summary: "사유 선택(기타 제외)"
+                value:
+                  reason: "불법 정보"
+                  detail: "허위 판매 글 신고"
+              other:
+                summary: "기타 선택(5자 이상 필수)"
+                value:
+                  reason: "기타"
+                  detail: "사유 설명이 필요합니다"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report_id:
+                    $ref: '#/components/schemas/Id64'
+                required:
+                  - report_id
+              example:
+                report_id: "OTAwMQ=="
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  # Auth (기존 병합본 그대로)
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: 회원가입
+      description: 이메일과 비밀번호로 신규 계정을 생성합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 사용자 이메일
+                password:
+                  type: string
+                  minLength: 8
+                  description: 비밀번호 (최소 8자)
+                username:
+                  type: string
+                  minLength: 2
+                  maxLength: 20
+                  description: 사용자 이름
+              required:
+                - email
+                - password
+                - username
+      responses:
+        '201':
+          description: 회원가입 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user_id:
+                    type: string
+                    description: 생성된 사용자 ID
+                  message:
+                    type: string
+                    example: 회원가입이 완료되었습니다.
+                required:
+                  - success
+                  - user_id
+        '400':
+          $ref: '#/components/responses/Error400'
+        '409':
+          description: 이메일 중복
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Api_error_wrapper'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 로그인
+      description: 이메일과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 사용자 이메일
+                password:
+                  type: string
+                  description: 비밀번호
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  access_token:
+                    type: string
+                    description: JWT 액세스 토큰
+                  refresh_token:
+                    type: string
+                    description: JWT 리프레시 토큰 (선택 사항)
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    description: 토큰 만료 시간(초)
+                    example: 3600
+                required:
+                  - success
+                  - access_token
+                  - token_type
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          description: 로그인 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Api_error_wrapper'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /auth/token/refresh/:
+    post:
+      tags: [Auth]
+      summary: 토큰 갱신
+      description: 리프레시 토큰으로 새로운 액세스 토큰을 발급받습니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+                  description: 리프레시 토큰
+              required:
+                - refresh_token
+      responses:
+        '200':
+          description: 토큰 갱신 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  access_token:
+                    type: string
+                    description: 새로운 JWT 액세스 토큰
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    description: 토큰 만료 시간(초)
+                required:
+                  - success
+                  - access_token
+                  - token_type
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          description: 유효하지 않은 리프레시 토큰
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Api_error_wrapper'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  # -----------------------------
+  # MyPage ( 마이 페이지 API )
+  # -----------------------------
+
+  /mypage/profile:
+    get:
+      tags: [Mypage]
+      summary: 내 프로필 조회
+      description: 현재 로그인한 사용자의 프로필 정보를 가져옵니다.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 프로필 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyProfileResponse'
+              example:
+                success: true
+                data:
+                  email: "test@test.com"
+                  nickname: "nickname"
+                  username: "real_name"
+                  gender: "male"
+                  has_pet: false
+                  created_at: "2025-11-06T12:00:00Z"
+        '401':
+          $ref: '#/components/responses/Error401'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    patch:
+      tags: [Mypage]
+      summary: 내 프로필 수정
+      description: 닉네임 변경, 성별, 반려동물 유무 등을 선택 수정합니다. 닉네임 변경 시 서버는 중복 체크를 확인합니다. (부분 수정 허용)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MyProfileUpdateRequest'
+            example:
+              nickname: "NewNickName"
+              gender: "female"
+              has_pet: true
+      responses:
+        '200':
+          description: 프로필 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Api_success_wrapper'
+              example:
+                success: true
+                message: "프로필이 수정되었습니다."
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '409':
+          description: 닉네임 중복 or 기존 닉네임과 같음 등 충돌
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Api_error_wrapper'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /mypage/profile/check-nickname:
+    get:
+      tags: [Mypage]
+      summary: 닉네임 중복 검사
+      description: 쿼리로 전달된 닉네임이 사용 가능한지 확인합니다.
+      parameters:
+        - name: nickname
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 30
+      responses:
+        '200':
+          description: 검사 결과 반환
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  is_available:
+                    type: boolean
+                required: [success, is_available]
+              example:
+                success: true
+                is_available: false
+        '400':
+          $ref: '#/components/responses/Error400'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /mypage/password:
+    post:
+      tags: [Mypage]
+      summary: 비밀번호 변경
+      description: 현재 인증된 사용자의 비밀번호를 변경합니다. (클라이언트에서 새 비밀번호와 재입력 확인)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+            example:
+              new_password: "newpassword"
+              new_password_confirm: "newpassword"
+      responses:
+        '200':
+          description: 비밀번호 변경 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Api_success_wrapper'
+              example:
+                success: true
+                message: "비밀번호가 변경되었습니다."
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          description: 비밀번호 확인 불일치
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Api_error_wrapper'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /mypage/withdraw:
+    post:
+      tags: [Mypage]
+      summary: 회원 탈퇴
+      description: 현재 로그인한 사용자의 계정을 삭제(또는 비활성화)합니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: 탈퇴 요청 시 비밀번호 확인용(선택)
+            example:
+              password: "password"
+      responses:
+        '204':
+          description: 회원 탈퇴 성공
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  # -----------------------------
+  # Mypage lists: 내 글 / 내가 좋아요한 글 / 내가 신고한 글
+  # -----------------------------
+  /mypage/posts:
+    get:
+      tags: [Mypage]
+      summary: 내가 작성한 게시글 목록 조회
+      description: 현재 로그인한 사용자가 작성한 게시글 목록을 조회합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/After'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostsListCommunityResponse'
+              example:
+                posts:
+                  - id: MTAx
+                    title: "내가 쓴 글 예시"
+                    content_snippet: "간단한 요약(200자)"
+                    category: "자유게시판"
+                    image_url: null
+                    author:
+                      user_id: MTE=
+                      nickname: "nickname"
+                    created_at: "2025-10-20T10:20:30Z"
+                    updated_at: "2025-10-20T12:00:00Z"
+                    view_count: 12
+                    like_count: 3
+                    comment_count: 0
+                    is_liked_by_me: true
+                page: 1
+                page_size: 20
+                total: 4
+        '401':
+          $ref: '#/components/responses/Error401'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /mypage/likes/posts:
+    get:
+      tags: [Mypage]
+      summary: 내가 좋아요한 게시글 목록 조회
+      description: 현재 로그인한 사용자가 좋아요한 게시글들의 목록을 조회합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/After'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostListItemCommunity'
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                  total:
+                    type: integer
+                required: [posts, page, page_size]
+              example:
+                posts:
+                  - id: MTAx
+                    title: "좋아요한 글 예시"
+                    content_snippet: "요약..."
+                    category: "정보공유"
+                    image_url: null
+                    author:
+                      user_id: MTE=
+                      nickname: "코코맘"
+                    created_at: "2025-10-20T10:20:30Z"
+                    updated_at: "2025-10-20T12:00:00Z"
+                    view_count: 345
+                    like_count: 12
+                    comment_count: 5
+                    is_liked_by_me: true
+                page: 1
+                page_size: 20
+                total: 15
+        '401':
+          $ref: '#/components/responses/Error401'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /mypage/reports:
+    get:
+      tags: [Mypage]
+      summary: 내가 신고한 게시글 목록 조회
+      description: 현재 로그인한 사용자가 신고한 목록을 조회합니다. 신고한 대상 게시글 정보와 신고 상태(처리중/완료 등)를 포함할 수 있습니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MyReportPost'
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                  total:
+                    type: integer
+                required: [reports, page, page_size]
+              example:
+                reports:
+                  - report_id: "MTE="
+                    post:
+                      id: MTE=
+                      title: "신고된 게시글 제목"
+                      author:
+                        user_id: MTk=
+                        nickname: "시고된 게시글 작성자"
+                    reason: "스팸 및 홍보성 게시물"
+                    detail: "동일 링크 반복 업로드"
+                    status: "processing"
+                    created_at: "2025-11-01T10:00:00Z"
+                page: 1
+                page_size: 20
+                total: 2
+        '401':
+          $ref: '#/components/responses/Error401'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /mypage/favorites/places:
+    get:
+      tags: [Mypage]
+      summary: 내 관심 장소 목록 조회
+      description: 현재 로그인한 사용자가 지도 기능에서 추가한 관심 장소(매장)들의 목록을 조회합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/After'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyLikedStoreListResponse'
+              example:
+                liked_stores:
+                  - like_place_id: "MTIzNDU="
+                    store:
+                      id: 1001
+                      name: 행복동물병원
+                      category:
+                        id: "1"
+                        name: 동물병원
+                      address:
+                        full_address: 서울특별시 강남구 역삼동 123-45
+                        latitude: 37.55878709
+                        longtitude: 126.82717098
+                      like_count: 342
+                    created_at: "2025-11-05T10:30:00Z"
+                page: 1
+                page_size: 20
+                total: 15
+        '401':
+          $ref: '#/components/responses/Error401'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+
+  /map/locations:
+    get:
+      tags: [Locations]
+      summary: 지역 정보 조회
+      description: 계층적 지역 정보를 조회합니다. (도/시/구/동)
+      parameters:
+        - name: province
+          in: query
+          description: 도/광역시 (미지정 시 전체 조회)
+          required: false
+          schema:
+            type: string
+        - name: district
+          in: query
+          description: 시/구/군 (province 필수)
+          required: false
+          schema:
+            type: string
+        - name: neighborhood
+          in: query
+          description: 읍/면/동 (district 필수)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 지역 정보 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Location'
+                required:
+                  - data
+        '400':
+          $ref: '#/components/responses/Error400'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /map/categories:
+    get:
+      tags: [Categories]
+      summary: 서비스 카테고리 조회
+      description: 매장 검색에 사용 가능한 카테고리 목록을 조회합니다.
+      responses:
+        '200':
+          description: 카테고리 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                required:
+                  - success
+                  - data
+              example:
+                data:
+                  - id: "1"
+                    name: 동물병원
+                    code: hospital
+                  - id: "2"
+                    name: 애견카페
+                    code: cafe
+                  - id: "3"
+                    name: 애견미용
+                    code: grooming
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /map/stores:
+    get:
+      tags: [Stores]
+      summary: 매장 검색 (무한 스크롤)
+      description: |-
+
+      parameters:
+        - name: province
+          in: query
+          description: 도/광역시
+          required: false
+          schema:
+            type: string
+            example: 서울특별시
+        - name: district
+          in: query
+          description: 시/구/군
+          required: false
+          schema:
+            type: string
+            example: 강남구
+        - name: neighborhood
+          in: query
+          description: 읍/면/동
+          required: false
+          schema:
+            type: string
+            example: 역삼동
+        - name: categories
+          in: query
+          description: 카테고리 코드 (콤마로 구분, 예 hospital,cafe)
+          required: false
+          schema:
+            type: string
+            example: hospital,cafe
+        - name: keyword
+          in: query
+          description: 검색 키워드 (매장명, 태그 등)
+          required: false
+          schema:
+            type: string
+            example: 24시간
+        - name: latitude
+          in: query
+          description: 사용자 위도 (거리 계산용)
+          required: false
+          schema:
+            type: number
+            format: float
+            example: 37.5665
+        - name: longitude
+          in: query
+          description: 사용자 경도 (거리 계산용)
+          required: false
+          schema:
+            type: number
+            format: float
+            example: 126.9780
+        - name: cursor
+          in: query
+          description: 페이지네이션 커서 (다음 페이지 요청 시 이전 응답의 next_cursor 사용)
+          required: false
+          schema:
+            type: integer
+            example: 20
+        - name: limit
+          in: query
+          description: 한 번에 가져올 항목 수 (기본 20, 최대 100)
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 매장 검색 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Store'
+                  metadata:
+                    $ref: '#/components/schemas/Infinite_scroll_metadata'
+                  applied_filters:
+                    $ref: '#/components/schemas/Applied_filters'
+                required:
+                  - success
+                  - data
+                  - metadata
+              example:
+                data:
+                  - id: 1001
+                    name: 행복동물병원
+                    category:
+                      id: "1"
+                      name: 동물병원
+                    address:
+                      province: 서울특별시
+                      district: 강남구
+                      neighborhood: 역삼동
+                      detail: 123-45
+                      full_address: 서울특별시 강남구 역삼동 123-45
+                      latitude: 37.55878709
+                      longtitude: 126.82717098
+                    phone: 02-1234-5678
+                    distance: 0.8
+                  - id: 1002
+                    name: 펫케어 동물의료센터
+                    category:
+                      id: "1"
+                      name: 동물병원
+                    address:
+                      province: 서울특별시
+                      district: 강남구
+                      neighborhood: 삼성동
+                      detail: 567-89
+                      full_address: 서울특별시 강남구 삼성동 567-89
+                      latitude: 37.55878709
+                      longtitude: 126.82717098
+                    phone: 02-9876-5432
+                    distance: 1.2
+                metadata:
+                  next_cursor: 20
+                  has_more: true
+                  total_count: 45
+                applied_filters:
+                  province: 서울특별시
+                  district: 강남구
+                  neighborhood: null
+                  categories:
+                    - hospital
+                  keyword: null
+        '400':
+          $ref: '#/components/responses/Error400'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  # -----------------------------
+  # 매장 관심장소 (Store Likes)
+  # -----------------------------
+  /map/stores/{store_id}/like:
+    get:
+      tags: [Store Likes]
+      summary: 매장 관심 상태 조회
+      description: |
+        특정 매장의 관심장소 상태를 조회합니다.
+        비로그인 사용자는 `is_liked: false`로 반환됩니다.
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          description: 매장 고유 ID
+          schema:
+            type: integer
+          example: 1001
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store_like_status'
+              example:
+                is_liked: false
+                like_count: 342
+        '404':
+          $ref: '#/components/responses/Error404'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    put:
+      tags: [Store Likes]
+      summary: 관심장소 추가 (idempotent)
+      description: |
+        특정 매장을 현재 로그인한 사용자의 관심장소로 추가합니다.
+        이미 추가된 매장을 다시 추가해도 오류가 발생하지 않습니다(멱등성).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          description: 매장 고유 ID
+          schema:
+            type: integer
+          example: 1001
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store_like_status'
+              example:
+                is_liked: true
+                like_count: 343
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+    delete:
+      tags: [Store Likes]
+      summary: 관심장소 삭제 (idempotent)
+      description: |
+        현재 로그인한 사용자의 관심장소 목록에서 특정 매장을 제거합니다.
+        이미 제거된 매장을 다시 삭제해도 오류가 발생하지 않습니다(멱등성).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          description: 매장 고유 ID
+          schema:
+            type: integer
+          example: 1001
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store_like_status'
+              example:
+                is_liked: false
+                like_count: 342
+        '401':
+          $ref: '#/components/responses/Error401'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /map/stores/liked:
+    get:
+      tags: [Store Likes]
+      summary: 내 관심장소 목록 조회 (무한 스크롤)
+      description: |
+        현재 로그인한 사용자가 저장한 관심장소 목록을 조회합니다.
+        `is_liked` 필터를 통해 관심장소(1) 또는 일반 매장(0)을 선택적으로 조회할 수 있습니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: is_liked
+          in: query
+          description: |
+            관심장소 필터
+            - 0: 관심장소가 아닌 매장만
+            - 1: 관심장소로 저장된 매장만
+            - 미지정: 전체 매장
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+          example: 1
+        - name: cursor
+          in: query
+          description: 페이지네이션 커서 (다음 페이지 요청 시 이전 응답의 next_cursor 사용)
+          required: false
+          schema:
+            type: integer
+          example: 20
+        - name: limit
+          in: query
+          description: 한 번에 가져올 항목 수 (기본 20, 최대 100)
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 관심장소 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Liked_store'
+                  metadata:
+                    $ref: '#/components/schemas/Infinite_scroll_metadata'
+                required:
+                  - success
+                  - data
+                  - metadata
+              example:
+                data:
+                  - like_place_id: "MTIzNDU="
+                    store:
+                      id: 1001
+                      name: 행복동물병원
+                      category:
+                        name: 동물병원
+                      address:
+                        province: 서울특별시
+                        district: 강남구
+                        neighborhood: 역삼동
+                        detail: 123-45
+                        full_address: 서울특별시 강남구 역삼동 123-45
+                        latitude: 37.55878709
+                        longtitude: 126.82717098
+                      phone: 02-1234-5678
+                      distance: null
+                    created_at: "2025-11-05T10:30:00Z"
+                  - like_place_id: "MTIzNDY="
+                    store:
+                      id: 1002
+                      name: 펫케어 동물의료센터
+                      category:
+                        id: "1"
+                        name: 동물병원
+                      address:
+                        province: 서울특별시
+                        district: 강남구
+                        neighborhood: 삼성동
+                        detail: 567-89
+                        full_address: 서울특별시 강남구 삼성동 567-89
+                        latitude: 37.55878709
+                        longtitude: 126.82717098
+                      phone: 02-9876-5432
+                      distance: null
+                    created_at: "2025-11-04T15:20:00Z"
+                metadata:
+                  next_cursor: 20
+                  has_more: true
+                  total_count: 45
+        '401':
+          $ref: '#/components/responses/Error401'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT 토큰을 사용한 인증.
+
+  parameters:
+    # 커뮤니티용 파라미터 (원본 유지, ID만 통합)
+    View:
+      name: view
+      in: query
+      description: |
+        목록 뷰 종류 선택:
+        - main: 메인(무한스크롤, after/limit)
+        - community: 커뮤니티(페이지네이션, page/page_size)
+      schema:
+        type: string
+        enum: [main, community]
+        default: community
+    After:
+      name: after
+      in: query
+      description: |
+        커서 기반 무한스크롤 토큰(메인 전용).
+        형식은 **불투명 문자열**입니다(예: URL-safe base64). 클라이언트는 그대로 보관/전달만 하세요.
+        이전 응답의 next_after 값을 그대로 전달하세요. 첫 페이지는 생략.
+      schema:
+        type: string
+        example: post_cursor_20251020T120000_101
+    Limit:
+      name: limit
+      in: query
+      description: 메인(무한스크롤)에서 한 번에 가져올 게시글 수.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 12
+    Page:
+      name: page
+      in: query
+      description: 커뮤니티(페이지네이션)에서의 페이지 번호(1부터 시작).
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      description: 커뮤니티에서 페이지 당 항목 수.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Category:
+      name: category
+      in: query
+      description: 커뮤니티 목록에서 카테고리 필터.
+      schema:
+        type: string
+        enum: [전체, 자유게시판, 정보공유, 질문게시판]
+    Sort:
+      name: sort
+      in: query
+      description: 정렬 기준 (latest=최신순, views=조회순, likes=추천순)
+      schema:
+        type: string
+        enum: [latest, views, likes]
+        default: latest
+        x-enumNames: [최신순, 조회순, 추천순]
+        x-enumDescriptions:
+          - 최신 게시물이 먼저 보이도록 정렬
+          - 조회수가 높은 순서로 정렬
+          - 추천(좋아요) 수가 많은 순서로 정렬
+    Q:
+      name: q
+      in: query
+      description: |
+        검색어. `search_in`에 따라 제목, 내용 또는 둘 다에서 부분 일치로 검색.
+      schema:
+        type: string
+        minLength: 1
+    SearchIn:
+      name: search_in
+      in: query
+      description: 검색 대상 필드 선택.
+      schema:
+        type: string
+        enum: [title, content, title_content]
+        default: title_content
+    Include:
+      name: include
+      in: query
+      description: 상세 조회 시 댓글 프리뷰 포함 옵션.
+      schema:
+        type: string
+        enum: [comments]
+    CommentsLimit:
+      name: comments_limit
+      in: query
+      description: 댓글 프리뷰 개수 제한.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    CommentsAfter:
+      name: comments_after
+      in: query
+      description: |
+        댓글 프리뷰 커서(더보기용).
+        형식은 **불투명 문자열**입니다(예: URL-safe base64). 클라이언트는 그대로 보관/전달만 하세요.
+      schema:
+        type: string
+        example: cmt_cursor_20251021_030600
+    PostId64:
+      name: post_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Id64'
+      description: 게시글 ID (base64 인코딩된 문자열)
+    CommentId64:
+      name: comment_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Id64'
+      description: 댓글 ID (base64 인코딩된 문자열)
+
+  schemas:
+    # 공통 ID (base64 문자열)
+    Id64:
+      type: string
+      description: base64로 인코딩된 고유 ID
+      pattern: '^[A-Za-z0-9+/=]+$'
+      example: MTIzNDU2Nzg5MDEyMw==
+
+    # ----- 커뮤니티 스키마 (원본 유지, ID 예시는 base64로 정리) -----
+    Author:
+      type: object
+      properties:
+        user_id:
+          $ref: '#/components/schemas/Id64'
+        nickname:
+          type: string
+      required: [user_id, nickname]
+      example:
+        user_id: MTIzNDU2Nzg5MDEyMw==
+        nickname: "따뜻한 연근"
+
+    MyProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            user_id:
+              $ref: '#/components/schemas/Id64'
+            email:
+              type: string
+              format: email
+            nickname:
+              type: string
+            username:
+              type: string
+            gender:
+              type: string
+              description: "male / female"
+              nullable: true
+            has_pet:
+              type: boolean
+            created_at:
+              type: string
+              format: date-time
+          required: [user_id, email, nickname]
+      example:
+        success: true
+        data:
+          user_id: "MTIzNDU2"
+          email: "test@test.com"
+          nickname: "닉네임"
+          username: "이름"
+          gender: "male"
+          has_pet: false
+          created_at: "2025-01-01T12:00:00Z"
+
+    MyProfileUpdateRequest:
+      type: object
+      description: "프로필 수정 요청 (반려동물 유무 nullable, 전달된 값만 수정)"
+      properties:
+        nickname:
+          type: string
+          minLength: 2
+          maxLength: 30
+          nullable: False
+        gender:
+          type: string
+          enum: [male, female]
+          nullable: False
+        has_pet:
+          type: boolean
+          nullable: true
+      additionalProperties: false
+
+    PasswordChangeRequest:
+      type: object
+      properties:
+        new_password:
+          type: string
+          minLength: 8
+        new_password_confirm:
+          type: string
+          minLength: 8
+      required: [new_password, new_password_confirm]
+
+    MyLikedStoreListResponse:
+      type: object
+      description: "내 관심 장소(매장) 목록 응답"
+      properties:
+        liked_stores:
+          type: array
+          items:
+            $ref: '#/components/schemas/Liked_store' # Liked_store 객체 참조
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+      required: [liked_stores, page, page_size, total]
+      example:
+        liked_stores:
+          - like_place_id: "MTIzNDU="
+            store:
+              id: 1001
+              name: 행복동물병원
+              category:
+                id: "1"
+                name: 동물병원
+              address:
+                full_address: 서울특별시 강남구 역삼동 123-45
+                latitude: 37.55878709
+                longtitude: 126.82717098
+              like_count: 342
+            created_at: "2025-11-05T10:30:00Z"
+        page: 1
+        page_size: 20
+        total: 15
+
+    MyReportPost:
+      type: object
+      properties:
+        report_id:
+          $ref: '#/components/schemas/Id64'
+        post:
+          $ref: '#/components/schemas/PostListItemCommunity'
+        reason:
+          type: string
+        detail:
+          type: string
+          nullable: true
+        status:
+          type: string
+          description: "pending/processing/resolved/rejected 등"
+        created_at:
+          type: string
+          format: date-time
+      required: [report_id, post, reason, status, created_at]
+
+    PostListItemMain:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id64'
+        title:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        author:
+          $ref: '#/components/schemas/Author'
+      required: [id, title, author]
+      example:
+        id: MTAx
+        title: "오늘 산책하기 좋은 코스"
+        image_url: "https://cdn.withpet.com/posts/p101.jpg"
+        author:
+          user_id: Nw==
+          nickname: "코코맘"
+
+    PostListItemCommunity:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id64'
+        title:
+          type: string
+        content_snippet:
+          type: string
+          maxLength: 200
+          description: "게시글 내용의 요약(처음 N자, 예: 180~200자). 서버에서 길이 제한에 맞춰 잘라 반환."
+        category:
+          type: string
+          enum: [자유게시판, 정보공유, 질문게시판]
+        image_url:
+          type: string
+          nullable: true
+        author:
+          $ref: '#/components/schemas/Author'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        view_count:
+          type: integer
+        like_count:
+          type: integer
+        comment_count:
+          type: integer
+        is_liked_by_me:
+          type: boolean
+          description: "현재 사용자 시점의 좋아요 여부(비로그인 또는 미좋아요: false)"
+      required:
+        - id
+        - title
+        - category
+        - author
+        - created_at
+        - updated_at
+        - view_count
+        - like_count
+        - comment_count
+      example:
+        id: MTAx
+        title: "반려견과 함께하는 가을 산책 코스 추천"
+        content_snippet: "도심에서도 강아지와 함께 걷기 좋은 코스를 정리했어요…"
+        category: "정보공유"
+        image_url: "https://cdn.withpet.com/posts/p101.jpg"
+        author:
+          user_id: Nw==
+          nickname: "코코맘"
+        created_at: "2025-10-20T10:20:30Z"
+        updated_at: "2025-10-20T12:00:00Z"
+        view_count: 345
+        like_count: 12
+        comment_count: 5
+        is_liked_by_me: false
+
+    PostDetail:
+      allOf:
+        - $ref: '#/components/schemas/PostListItemCommunity'
+        - type: object
+          properties:
+            content:
+              type: string
+              description: "게시글 전체 본문"
+      example:
+        id: MTAx
+        title: "반려견과 함께하는 가을 산책 코스 추천"
+        content: "도심 속 공원부터 한강 변까지, 반려견과 함께 걷기 좋은 코스를 상세히 정리했습니다. 준비물, 주의사항, 근처 애견카페 정보도 포함했어요."
+        category: "정보공유"
+        image_url: "https://cdn.withpet.com/posts/p101.jpg"
+        author:
+          user_id: Nw==
+          nickname: "코코맘"
+        created_at: "2025-10-20T10:20:30Z"
+        updated_at: "2025-10-20T12:00:00Z"
+        view_count: 345
+        like_count: 12
+        comment_count: 5
+        is_liked_by_me: true
+
+    Comment:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id64'
+        author:
+          $ref: '#/components/schemas/Author'
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        is_deleted:
+          type: boolean
+      required: [id, author, content, created_at, updated_at, is_deleted]
+      example:
+        id: NTUwMQ==
+        author:
+          user_id: MTk=
+          nickname: "따뜻한 연근"
+        content: "좋은 정보 감사합니다! 주차는 어디에 하면 좋을까요?"
+        created_at: "2025-10-21T02:00:00Z"
+        updated_at: "2025-10-21T02:10:00Z"
+        is_deleted: false
+
+    CommentsBlock:
+      type: object
+      description: |-
+        댓글 목록(프리뷰/페이지네이션) 컨테이너입니다.
+        사용처:
+        - `GET /withpet/posts/{post_id}`에서 `include=comments`일 때 댓글 프리뷰로 포함됩니다.
+        - 이후 "더보기" UX에서는 응답의 `next_after` 값을 그대로 `comments_after`로 전달해 다음 배치를 요청합니다.
+
+        필드 의미:
+        - `items`: 이번 호출로 수신한 댓글 배열입니다.
+        - `total_count`: 해당 게시글의 전체 댓글 수(서버 정책에 따라 지연 반영될 수 있음)입니다.
+        - `has_next`: 뒤에 더 불러올 댓글이 있으면 `true`입니다.
+        - `next_after`: 다음 호출을 위한 커서입니다. 마지막 페이지면 `null`입니다.
+      properties:
+        items:
+          type: array
+          minItems: 0
+          description: 이번 배치의 댓글 목록.
+          items:
+            $ref: '#/components/schemas/Comment'
+        total_count:
+          type: integer
+          minimum: 0
+          description: 이 게시글의 전체 댓글 수(지연 반영 가능).
+        has_next:
+          type: boolean
+          description: 다음 배치가 있으면 true.
+        next_after:
+          type: string
+          nullable: true
+          description: 다음 호출을 위한 커서. 다음 요청의 `comments_after`로 그대로 전달.
+      example:
+        items:
+          - id: NTUwMQ==
+            author:
+              user_id: MTk=
+              nickname: "따뜻한 연근"
+            content: "좋은 정보 감사합니다! 주차는 어디에 하면 좋을까요?"
+            created_at: "2025-10-21T02:00:00Z"
+            updated_at: "2025-10-21T02:10:00Z"
+            is_deleted: false
+          - id: NTUwMg==
+            author:
+              user_id: MjM=
+              nickname: "모모아빠"
+            content: "한강 공원 쪽 공영주차장 추천드려요."
+            created_at: "2025-10-21T03:05:00Z"
+            updated_at: "2025-10-21T03:05:00Z"
+            is_deleted: false
+        total_count: 42
+        has_next: true
+        next_after: "cmt_cursor_20251021_030600"
+
+    LikeStatus:
+      type: object
+      properties:
+        is_liked:
+          type: boolean
+          description: "현재 사용자 시점의 좋아요 여부(비로그인 또는 미좋아요: false)"
+        like_count:
+          type: integer
+          description: "게시글의 총 좋아요 수"
+      required: [is_liked, like_count]
+      example:
+        is_liked: true
+        like_count: 13
+
+    ReportRequest:
+      oneOf:
+        - type: object
+          properties:
+            reason:
+              type: string
+              enum:
+                - "혐오 및 차별"
+                - "욕설 및 비방"
+                - "불법 정보"
+                - "스팸 및 홍보성 게시물"
+                - "개인정보 침해"
+                - "저작권/지적재산권 침해"
+                - "청소년 유해 정보"
+            detail:
+              type: string
+              nullable: true
+          required: [reason]
+        - type: object
+          properties:
+            reason:
+              type: string
+              enum: ["기타"]
+            detail:
+              type: string
+              minLength: 5
+          required: [reason, detail]
+      example:
+        reason: "스팸 및 홍보성 게시물"
+        detail: "동일 링크 반복 업로드"
+
+    PostCreateJson:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        content:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        category:
+          type: string
+          enum: [자유게시판, 정보공유, 질문게시판]
+      required: [title, content, category]
+      example:
+        title: "반려견 산책 메이트 구해요"
+        content: "주말 오전에 함께 산책하실 분 구합니다. 망원한강공원 근처예요."
+        category: "자유게시판"
+
+    PostUpdateJson:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          nullable: true
+        content:
+          type: string
+          minLength: 1
+          maxLength: 20000
+          nullable: true
+        category:
+          type: string
+          enum: [자유게시판, 정보공유, 질문게시판]
+          nullable: true
+        image_delete:
+          type: boolean
+          nullable: true
+      additionalProperties: false
+      example:
+        title: "반려견 산책 메이트 구해요(시간 변경)"
+        content: "주말 오후로 변경합니다. 장소는 동일해요!"
+        category: "자유게시판"
+        image_delete: false
+
+    # 병합본 하위 호환을 위한 snake_case 별칭 (요청하신 $ref 오류 해결)
+    Post_update_json:
+      allOf:
+        - $ref: '#/components/schemas/PostUpdateJson'
+
+    PostsListMainResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostListItemMain'
+        has_next:
+          type: boolean
+        next_after:
+          type: string
+          nullable: true
+      required: [posts, has_next]
+      example:
+        posts:
+          - id: MTAx
+            title: "오늘 산책하기 좋은 코스"
+            image_url: "https://cdn.withpet.com/posts/p101.jpg"
+            author:
+              user_id: Nw==
+              nickname: "코코맘"
+          - id: MTAy
+            title: "겨울 대비 강아지 패딩 후기"
+            image_url: null
+            author:
+              user_id: MTE=
+              nickname: "츄릅집사"
+        has_next: true
+        next_after: "post_cursor_20251020_120000"
+
+    PostsListCommunityResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostListItemCommunity'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+      required: [posts, page, page_size]
+      example:
+        posts:
+          - id: MTAx
+            title: "반려견과 함께하는 가을 산책 코스 추천"
+            content_snippet: "도심에서도 강아지와 함께 걷기 좋은 코스를 정리했어요…"
+            category: "정보공유"
+            image_url: "https://cdn.withpet.com/posts/p101.jpg"
+            author:
+              user_id: Nw==
+              nickname: "코코맘"
+            created_at: "2025-10-20T10:20:30Z"
+            updated_at: "2025-10-20T12:00:00Z"
+            view_count: 345
+            like_count: 12
+            comment_count: 5
+            is_liked_by_me: false
+          - id: OTk=
+            title: "강아지 초보 입양자를 위한 체크리스트"
+            content_snippet: "사료/배변/산책 준비물부터 예방접종까지…"
+            category: "정보공유"
+            image_url: null
+            author:
+              user_id: MTk=
+              nickname: "따뜻한 연근"
+            created_at: "2025-10-18T09:00:00Z"
+            updated_at: "2025-10-18T09:00:00Z"
+            view_count: 712
+            like_count: 40
+            comment_count: 22
+            is_liked_by_me: false
+        page: 1
+        page_size: 20
+        total: 153
+
+    PostDetailResponse:
+      type: object
+      properties:
+        post:
+          $ref: '#/components/schemas/PostDetail'
+        comments:
+          $ref: '#/components/schemas/CommentsBlock'
+      required: [post]
+      example:
+        post:
+          id: MTAx
+          title: "반려견과 함께하는 가을 산책 코스 추천"
+          content: "도심 속 공원부터 한강 변까지, 반려견과 함께 걷기 좋은 코스를 상세히 정리했습니다..."
+          category: "정보공유"
+          image_url: "https://cdn.withpet.com/posts/p101.jpg"
+          author:
+            user_id: Nw==
+            nickname: "코코맘"
+          created_at: "2025-10-20T10:20:30Z"
+          updated_at: "2025-10-20T12:00:00Z"
+          view_count: 345
+          like_count: 12
+          comment_count: 5
+          is_liked_by_me: true
+
+    # ----- 지도/매장/공통 스키마 (기존 병합본 유지) -----
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 지역 ID
+        name:
+          type: string
+          description: 지역명
+        type:
+          type: string
+          enum: [province, district, neighborhood]
+          description: 지역 타입
+        parent_id:
+          type: string
+          nullable: true
+          description: 상위 지역 ID
+      required: [id, name, type]
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 카테고리 ID
+        name:
+          type: string
+          description: 카테고리명
+        code:
+          type: string
+          description: 카테고리 코드
+      required: [id, name, code]
+
+    Address:
+      type: object
+      properties:
+        province:
+          type: string
+          description: 도/광역시
+        district:
+          type: string
+          description: 시/구/군
+        neighborhood:
+          type: string
+          description: 읍/면/동
+        detail:
+          type: string
+          description: 상세 주소
+        full_address:
+          type: string
+          description: 전체 주소
+        postal_code:
+          type: string
+          description: 우편번호
+      required: [province, district, full_address]
+
+    Store:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 매장 ID (integer)
+        name:
+          type: string
+          description: 매장 이름
+        category:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        phone:
+          type: string
+          description: 전화번호
+        rating:
+          type: number
+          format: float
+          description: 평점 (0-5)
+        review_count:
+          type: integer
+          description: 리뷰 수
+        tags:
+          type: array
+          items:
+            type: string
+          description: 태그 목록
+        distance:
+          type: number
+          format: float
+          nullable: true
+          description: 거리 (km, 좌표 제공 시에만)
+        thumbnail_url:
+          type: string
+          description: 썸네일 이미지 URL
+        like_count:
+          type: integer
+          description: 관심장소로 저장한 사용자 수
+          default: 0
+      required: [id, name, category, address]
+
+    Infinite_scroll_metadata:
+      type: object
+      description: 무한 스크롤 메타데이터 (매장 검색 및 기타 리스트에 적용)
+      properties:
+        next_cursor:
+          type: integer
+          nullable: true
+          description: 다음 페이지 커서 (더 이상 없으면 null)
+        has_more:
+          type: boolean
+          description: 다음 페이지 존재 여부
+        total_count:
+          type: integer
+          nullable: true
+          description: 전체 아이템 수 (선택사항, 성능상 제공하지 않을 수 있음)
+      required: [next_cursor, has_more]
+
+    Applied_filters:
+      type: object
+      description: 현재 적용된 검색 필터
+      properties:
+        province:
+          type: string
+          nullable: true
+        district:
+          type: string
+          nullable: true
+        neighborhood:
+          type: string
+          nullable: true
+        categories:
+          type: array
+          items:
+            type: string
+        keyword:
+          type: string
+          nullable: true
+
+    Store_like_status:
+      type: object
+      description: 매장 관심장소 상태
+      properties:
+        is_liked:
+          type: boolean
+          description: "현재 사용자의 관심장소 여부 (비로그인 또는 미저장: false)"
+        like_count:
+          type: integer
+          description: 해당 매장을 관심장소로 저장한 총 사용자 수
+      required: [is_liked, like_count]
+      example:
+        is_liked: true
+        like_count: 342
+
+    Liked_store:
+      type: object
+      description: 관심장소로 저장된 매장 정보
+      properties:
+        like_place_id:
+          $ref: '#/components/schemas/Id64'
+          description: 관심장소 고유 ID (base64 인코딩)
+        store:
+          allOf:
+            - $ref: '#/components/schemas/Store'
+            - type: object
+              properties:
+                like_count:
+                  type: integer
+                  description: 이 매장을 관심장소로 저장한 총 사용자 수
+              required: [like_count]
+        created_at:
+          type: string
+          format: date-time
+          description: 관심장소로 추가한 시간
+      required: [like_place_id, store, created_at]
+      example:
+        like_place_id: "MTIzNDU="
+        store:
+          id: 1001
+          name: 행복동물병원
+          category:
+            id: "1"
+            name: 동물병원
+          address:
+            province: 서울특별시
+            district: 강남구
+            neighborhood: 역삼동
+            detail: 123-45
+            full_address: 서울특별시 강남구 역삼동 123-45
+            latitude: 37.55878709
+            longtitude: 126.82717098
+          phone: 02-1234-5678
+          tags:
+            - 24시간
+            - 주차가능
+          distance: null
+        created_at: "2025-11-05T10:30:00Z"
+
+    Api_error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드
+        message:
+          type: string
+          description: 에러 메시지
+        details:
+          type: object
+          description: 상세 에러 정보
+          nullable: true
+      required: [code, message]
+
+    Api_error_wrapper:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/Api_error'
+      required: [success, error]
+
+    Api_success_wrapper:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          description: 성공 메시지 (선택 사항)
+          example: 성공적으로 처리되었습니다.
+      required: [success]
+
+    # (커뮤니티 원본의 Error 스키마도 보존)
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        field_errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              reason:
+                type: string
+              rule:
+                type: string
+      required: [code, message]
+
+  requestBodies:
+    # 커뮤니티 원본
+    PostCreate:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PostCreateJson'
+          example:
+            title: "반려견 산책 메이트 구해요"
+            content: "주말 오전에 함께 산책하실 분 구합니다. 망원한강공원 근처예요."
+            category: "자유게시판"
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              content:
+                type: string
+              category:
+                type: string
+                enum: [자유게시판, 정보공유, 질문게시판]
+              image:
+                type: string
+                format: binary
+            required: [title, content, category]
+          encoding:
+            image:
+              contentType: image/*
+          example:
+            title: "반려묘 화장실 모래 추천"
+            content: "먼지 적고 탈취력 좋은 제품 공유합니다."
+            category: "정보공유"
+            image: "(binary)"
+
+    PostUpdate:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PostUpdateJson'
+          example:
+            title: "반려견 산책 메이트 구해요(시간 변경)"
+            content: "주말 오후로 변경합니다. 장소는 동일해요!"
+            category: "자유게시판"
+            image_delete: false
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                nullable: true
+              content:
+                type: string
+                nullable: true
+              category:
+                type: string
+                enum: [자유게시판, 정보공유, 질문게시판]
+                nullable: true
+              image:
+                type: string
+                format: binary
+                nullable: true
+          encoding:
+            image:
+              contentType: image/*
+          example:
+            title: "강아지 패딩 후기(사진 교체)"
+            content: "실내 조명에서 찍은 사진으로 교체합니다."
+            category: "정보공유"
+            image: "(binary)"
+
+    # 기존 병합본(호환 유지용) — $ref들이 유효하도록 유지
+    Post_create:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Post_update_json'
+              - required: [title, content, category]
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              content:
+                type: string
+              category:
+                type: string
+                enum: [전체, 자유게시판, 정보공유, 질문게시판]
+              image:
+                type: string
+                format: binary
+                nullable: true
+            required: [title, content, category]
+
+    Post_update:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Post_update_json'
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                nullable: true
+              content:
+                type: string
+                nullable: true
+              category:
+                type: string
+                enum: [전체, 자유게시판, 정보공유, 질문게시판]
+                nullable: true
+              image:
+                type: string
+                format: binary
+                nullable: true
+              image_delete:
+                type: boolean
+                nullable: true
+
+  responses:
+    # 기존 병합본 응답 (Auth/Map 등에서 사용)
+    Api_success_response:
+      description: 성공적으로 처리됨 (Auth/Map API용)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_success_wrapper'
+    Error400:
+      description: 잘못된 요청 (Bad Request)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'
+    Error401:
+      description: 인증 실패 (Unauthorized)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'
+    Error403:
+      description: 권한 없음 (Forbidden)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'
+    Error404:
+      description: 리소스를 찾을 수 없음 (Not Found)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'
+    Error409:
+      description: 충돌 (Conflict)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'
+    Error415:
+      description: 지원하지 않는 미디어 타입 (Unsupported Media Type)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'
+    Error429:
+      description: 요청 과다 (Too Many Requests)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'
+    Error500:
+      description: 서버 내부 오류 (Server Error)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Api_error_wrapper'

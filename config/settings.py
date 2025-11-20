@@ -9,13 +9,15 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import os
+import sys
 
+from datetime import timedelta
 from pathlib import Path
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -26,8 +28,14 @@ SECRET_KEY = 'django-insecure-a4yn1d0737k24l^=i_ebv2a)wg4if&9!9b^jjuko5*fzmc!c*9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['oz-withpet.kro.kr']
+AUTH_USER_MODEL = "users.CustomUser"
 
+COMMUNITY_POST_MODEL = "posts.Post"
+
+ALLOWED_HOSTS = ['api.withpet.space', 'withpet.space', 'www.withpet.space', '127.0.0.1', 'localhost']
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Application definition
 
@@ -39,8 +47,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'apps.users',
     'drf_spectacular',
     'corsheaders',
+    "apps.community.posts.apps.PostsConfig",
+    "apps.community.comments.apps.CommentsConfig",
+    "apps.community.likes.apps.LikesConfig",
+    "apps.community.reports.apps.ReportsConfig",
+    'django.contrib.postgres',
+    'django_filters',
+    'apps.maps',
 ]
 
 MIDDLEWARE = [
@@ -62,6 +79,7 @@ REST_FRAMEWORK = {
     # 인증 방식 조정 필요
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -91,8 +109,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -131,6 +153,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 STATIC_URL = 'static/'
 
 # Default primary key field type
@@ -143,15 +167,23 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'oz-withpet API',
     'DESCRIPTION': 'oz-withpet API',
     'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
     'SERVERS': [
-        {'url': 'https://oz-withpet.kro.kr', 'description': 'for test'},
+        {'url': 'https://api.withpet.space', 'description': 'for test'},
+    ],
+
+    # ✅ JWT 토큰 Authorize 버튼 추가
+    'SECURITY': [
+        {'BearerAuth': []},
     ],
     'COMPONENTS': {
         'securitySchemes': {
             'BearerAuth': {
                 'type': 'http',
                 'scheme': 'bearer',
-                'bearerFormat': 'JWT'
+                'bearerFormat': 'JWT',
+                'description': 'JWT 토큰을 아래 형식으로 입력하세요: \n\n`Bearer <access_token>`',
             }
         }
     },
@@ -159,7 +191,81 @@ SPECTACULAR_SETTINGS = {
 
 # swagger editor를 로컬에서 테스트 할 경우 도메인 안전장치
 CORS_ALLOWED_ORIGINS = [
-    "https://oz-withpet.kro.kr",
+    "https://api.withpet.space",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://www.withpet.space"
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOW_HEADERS = list(default_headers) + ['authorization']
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # TLS 연결, host:port 사용
+        "LOCATION": "rediss://pet-service-cache-kvmoj6.serverless.apn2.cache.amazonaws.com:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SSL_CERT_REQS": None,  # TLS 인증서 검증 무시 (AWS Serverless 허용)
+        },
+        "TIMEOUT": 60 * 15,  # 기본 TTL 15분
+    }
+}
+
+
+#테스트용 = 실제로 메일이 안 가고, 터미널에 인증 코드가 찍혀서 테스트 가능
+#EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# 기본 발신자 이메일
+#DEFAULT_FROM_EMAIL = "no-reply@withpet.com"
+
+# --------------------------------
+# 이메일 인증 미사용으로 인한 조치 시작
+# --------------------------------
+
+EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
+
+# EMAIL_HOST = "email-smtp.ap-northeast-2.amazonaws.com"   # SES SMTP 엔드포인트
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+#
+# EMAIL_HOST_USER = "AKIAYHB3N5LLKNHDXLNT"        # SMTP Username
+# EMAIL_HOST_PASSWORD = "BHklUYtM74m/+dS89aA3MGqdZA0+kE1R7m2B750TS9Sx"    # SMTP Password
+#
+# DEFAULT_FROM_EMAIL = "jisun131200@gmail.com"
+# SERVER_EMAIL = "jisun131200@gmail.com"
+
+# --------------------------------
+# 이메일 인증 미사용으로 인한 조치 끝
+# --------------------------------
+
+# SameSite 정책 추가
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# 리다이렉트 오류 방지 추가
+
+APPEND_SLASH = False
+
+# 쿠키 공유 설정 
+SESSION_COOKIE_DOMAIN = '.withpet.space'
+
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://0b58502a077d835d3312da5ac24a53d2@o4510357893152768.ingest.us.sentry.io/4510357893939200",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
